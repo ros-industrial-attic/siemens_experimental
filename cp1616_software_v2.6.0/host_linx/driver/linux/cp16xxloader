@@ -1,0 +1,202 @@
+#!/bin/bash
+# Copyright (C) SIEMENS CORP., 2013 All rights reserved.
+# All rights reserved.
+#
+# Author: Alexander Kern, 2005
+#
+#
+# /etc/init.d/cp16xxloader
+#
+# Script to load or unload the example driver for CP1604 CP1616.
+#
+### BEGIN INIT INFO
+# Provides:       cp16xxloader
+# Required-Start:
+# Required-Stop:
+# Default-Start:  2 3 5
+# Default-Stop:
+# Short-Description: Siemens CP16xx example driver
+# Description:    Script to load or unload the example driver for CP1604 CP1616.
+### END INIT INFO
+
+module="cp16xx"
+device="cp16xx"
+mode="666"
+MODPROBE=/sbin/modprobe
+KERNELDIR="/lib/modules/$(uname -r)/"
+RTAI_SUB_DIR="rtai/"
+CP16XX_SUB_DIR="extra/"
+MD5=/usr/bin/md5sum
+
+check_modprobe_rtai() {
+    local rtai_path=$(echo $($MODPROBE -vn $module|grep rtai_mup) | sed  's/[^\/]*\(\/.*\/\).*/\1/')
+    if [ ! -f $rtai_path/rtai_mup.ko ] || [ ! -f $rtai_path/rtai_sched.ko ] ; then
+	return 0
+    fi
+    # extract md5 values from 'md5 file'
+    local md5_mup=$( echo $($MD5 $rtai_path/rtai_mup.ko) | sed 's/\(.*\)\ .*/\1/')
+    local md5_sched=$( echo $($MD5 $rtai_path/rtai_sched.ko) | sed 's/\(.*\)\ .*/\1/')
+
+    if [ "$md5_mup" == "$md5_sched" ] ; then 
+        return 1
+    fi
+    return 0
+}
+
+# SuSE init script style
+if [ -f /etc/rc.status ] ; then
+    . /etc/rc.status
+fi
+
+if [ -f /etc/rc.status ] ; then
+    rc_reset
+fi
+case "$1" in
+    start)
+        echo -n "load cp1604 cp1616 example driver..."
+        # load rtai_* modules
+        #if [ -f /proc/adeos -o -f /proc/ipipe/version ] ; then
+        #    insmod -s /usr/realtime/modules/rtai_hal.* 2>/dev/null
+        #    insmod -s /usr/realtime/modules/rtai_ksched.* 2>/dev/null
+        #    insmod -s /usr/realtime/modules/rtai_sem.* 2>/dev/null
+        #fi
+        # invoke insmod with all arguments we got
+        # and use a pathname, as newer modutils don't look in . by default
+        if [ $(lsmod | grep $module | wc -l) -ne "0" ] ; then
+            echo -n " already loaded"
+            if [ -f /etc/rc.status ] ; then
+                rc_failed
+            else
+                echo -n "failed"
+            fi
+            exit 1
+        fi
+	
+        check_modprobe_rtai
+        if [ $? -eq 1 ] ; then
+	    echo "and all submodules separately."
+            for MODUL_NAME in "${RTAI_SUB_DIR}rtai_hal" \
+                              "${RTAI_SUB_DIR}rtai_sched" \
+                              "${RTAI_SUB_DIR}rtai_tasklets" \
+                              "${RTAI_SUB_DIR}rtai_sem" \
+                              "${CP16XX_SUB_DIR}$module"
+            do
+                if [ -n "$MODUL_NAME" ] ; then
+                    /sbin/insmod ${KERNELDIR}$MODUL_NAME.ko || exit 1
+                fi
+            done
+        else
+            /sbin/modprobe -f $module || exit 1
+        fi
+       
+        major=`cat /proc/devices | awk "\\$2==\"$device\" {print \\$1}"`
+
+        if [ "$major" = "" ] ; then
+            echo -n "no CP found or loading failure"
+            if [ -f /etc/rc.status ] ; then
+                rc_failed
+            else
+                echo -n "failed"
+            fi
+            exit 1
+        fi
+
+        # Remove stale nodes and replace them, then give gid and perms
+        # Usually the script is shorter, it's simple that has several devices in it.
+
+        index=0
+
+        for i in $major
+        do  {
+            c=$((index++))
+        #remove all files
+            rm -rf /dev/${device}$c
+        #create new directory
+            mkdir /dev/${device}$c
+        #create device files
+            mknod /dev/${device}$c/synch   c $i 0
+            mknod /dev/${device}$c/alarm   c $i 1
+            mknod /dev/${device}$c/modind  c $i 2
+            mknod /dev/${device}$c/datarec c $i 3
+            mknod /dev/${device}$c/mgt     c $i 4
+            mknod /dev/${device}$c/eddnhif c $i 5
+            mknod /dev/${device}$c/hif     c $i 6
+            mknod /dev/${device}$c/l2eth_send  c $i 7
+            mknod /dev/${device}$c/l2eth_receive  c $i 8
+            mknod /dev/${device}$c/control c $i 9
+        #set permissions
+            chmod -f $mode /dev/${device}$c/*
+        }
+        done
+
+        if [ -f /etc/rc.status ] ; then
+            rc_status -v
+        else
+            echo "done"
+        fi
+        ;;
+
+    stop)
+        echo -n "unload cp1604 cp1616 example driver..."
+        # invoke rmmod with all arguments we got
+        if [ $(lsmod | grep $module | wc -l) -eq "0" ] ; then
+            echo -n " not loaded"
+            if [ -f /etc/rc.status ] ; then
+                rc_failed
+            else
+                echo -n "failed"
+            fi
+			exit 1
+        fi
+
+
+        check_modprobe_rtai
+        if [ $? -eq 1 ] ; then
+	    echo "and all submodules separately."
+            for MODUL_NAME in "${CP16XX_SUB_DIR}$module" \
+                              "${RTAI_SUB_DIR}rtai_sem" \
+                              "${RTAI_SUB_DIR}rtai_tasklets" \
+                              "${RTAI_SUB_DIR}rtai_sched" \
+                              "${RTAI_SUB_DIR}rtai_hal"
+            do
+                if [ -n "$MODUL_NAME" ] ; then
+                    /sbin/rmmod ${KERNELDIR}$MODUL_NAME.ko || exit 1
+                fi
+            done
+        else
+            /sbin/modprobe -r -q $module || exit 1
+        fi
+
+        #if [ -f /proc/adeos -o -f /proc/ipipe/version ] ; then
+        #    /sbin/rmmod rtai_sem 2>/dev/null
+        #    /sbin/rmmod rtai_up 2>/dev/null
+        #    /sbin/rmmod rtai_smp 2>/dev/null
+        #    /sbin/rmmod rtai_hal 2>/dev/null
+        #fi
+
+        # Remove stale nodes
+        rm -rf /dev/${device}[0-9]/*
+
+        if [ -f /etc/rc.status ] ; then
+            rc_status -v
+        else
+            echo "done"
+        fi
+        ;;
+
+    restart)
+        $0 stop
+        $0 start
+        if [ -f /etc/rc.status ] ; then
+            rc_status
+        fi
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+if [ -f /etc/rc.status ] ; then
+    rc_exit
+fi
