@@ -7,13 +7,13 @@ This repository contains software related to Siemens components used in ROS-PROF
  - STEP 7 example projects for S7-1200 PLC
 
 #CP1616 
-ROS-PROFINET wrapper project utilizes communications module [CP1616][] enabling PCs equipped with a PCI slot to be connected to PROFINET IO. With existing Linux support, real-time capabilities and both IO Controller/IO device communications options we consider this device an ideally suited candidate for connecting [ROS-Industrial][] systems to PROFINET IO. 
+ROS-PROFINET wrapper project utilizes communications module [Siemens CP1616][], enabling PCs equipped with a PCI slot to be connected to PROFINET IO. With existing Linux support, real-time capabilities and both IO Controller/IO device communications options, we consider this device an ideally suited candidate for connecting [ROS-Industrial][] systems to [PROFINET IO][]. For additional details about Linux support please refer to [DK16xx PN IO software][].
 <p align="center">
 <img src="https://github.com/durovsky/siemens_experimental/blob/master/rep/cp1616.jpeg" />
 </p>
 
 #S7-1200 PLC
-For initial phase of development we decided to use new "TIA generation" PLC [S7-1200][]. The S7-1200 compact controller includes built-in PROFINET as a standard interface and enable us to experiment with both communication options.  
+For initial phase of development we decided to use new "TIA generation" PLC [S7-1200][]. The S7-1200 compact controller with built-in PROFINET as a standard interface and enable us to experiment with both IO Controller/IO device options. Example projects for testing basic Profinet communication between CP1616 and S7-1200 are available in Step7 folder.
 <p align="center">
 <img src="https://github.com/durovsky/siemens_experimental/blob/master/rep/s7-1200_sys.jpg" />
 </p>
@@ -22,3 +22,5 @@ For initial phase of development we decided to use new "TIA generation" PLC [S7-
 [ROS-Industrial]: http://www.ros.org/wiki/Industrial
 [CP1616]: http://w3.siemens.com/mcms/industrial-communication/en/ie/system-interfacing/system-interfacing-pg-pc/cp1616/pages/cp1616.aspx
 [S7-1200]: http://w3.siemens.com/mcms/programmable-logic-controller/en/basic-controller/s7-1200/pages/default.aspx
+[DK16xx PN IO software]: http://w3.siemens.com/mcms/industrial-communication/en/ie/system-interfacing/system-interfacing-pg-pc/development-kit-dk16xx/Documents/PROFINET_DK_16xx_PN_IO_en_Web_mit_KF.pdf
+[PROFINET IO]: http://us.profinet.com/technology/profinet/
