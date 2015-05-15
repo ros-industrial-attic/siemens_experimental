@@ -7,7 +7,7 @@ This repository contains software related to Siemens components used in ROS-PROF
  - STEP 7 example projects for S7-1200 PLC
 
 #CP1616 
-ROS-PROFINET wrapper project utilizes communications module [Siemens CP1616][], enabling PCs equipped with a PCI slot to be connected to PROFINET IO. With existing Linux support, real-time capabilities and both IO Controller/IO device communications options, we consider this device an ideally suited candidate for connecting [ROS-Industrial][] systems to [PROFINET IO][]. For additional details about Linux support please refer to [DK16xx PN IO software][].
+[ROS-PROFINET wrapper][] utilizes communications module [Siemens CP1616][], which enables PGs/PCs equipped with a PCI slot to be connected to PROFINET IO. With existing Linux support, real-time capabilities and both IO Controller/IO device communications options, we consider this device an ideally suited candidate for connecting [ROS-Industrial][] systems to [PROFINET IO][]. For additional details about Linux support please refer to [DK16xx PN IO software][]. 
 <p align="center">
 <img src="https://github.com/durovsky/siemens_experimental/blob/master/rep/cp1616.jpeg" />
 </p>
@@ -23,6 +23,7 @@ Image sources
 - CP1616  https://mall.industry.siemens.com/collaterals/files/14/jpg/P_IK10_XX_00591i.jpg
 - S7-1200 https://cache.industry.siemens.com/dl/files/057/57027057/img_23108/v1/s7-1200_sys.jpg
 
+[ROS-PROFINET wrapper]: https://github.com/ros-industrial/ros_profinet_experimental
 [ROS-Industrial]: http://www.ros.org/wiki/Industrial
 [Siemens CP1616]: http://w3.siemens.com/mcms/industrial-communication/en/ie/system-interfacing/system-interfacing-pg-pc/cp1616/pages/cp1616.aspx
 [S7-1200]: http://w3.siemens.com/mcms/programmable-logic-controller/en/basic-controller/s7-1200/pages/default.aspx
