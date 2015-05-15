@@ -1,6 +1,6 @@
-# Linux SW for CP1616
+# Linux SW for CP1616 V2.6
 
-Driver and the IO-Base sources for Siemens CP 1616.   
+Original driver and the IO-Base sources for Siemens CP 1616.   
 
 
 
