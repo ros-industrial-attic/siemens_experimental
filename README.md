@@ -2,7 +2,7 @@
 
 This repository contains software related to Siemens components used in ROS-PROFINET wrapper project:  
  
- - Linux SW for CP1616 - original Siemens CP1616 driver + IO Base, Layer2 and Serv library
+ - Linux SW for CP1616 V2.6 - original Siemens driver + IO Base, Layer2 and Serv library
  - CP1616 GSD files for integration into Simatic NET configuration
  - STEP 7 example projects for S7-1200 PLC
 
