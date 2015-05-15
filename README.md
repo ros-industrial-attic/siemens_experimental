@@ -13,7 +13,8 @@ ROS-PROFINET wrapper project utilizes communications module [Siemens CP1616][], 
 </p>
 
 #S7-1200 PLC
-For initial phase of development we decided to use new "TIA generation" PLC [S7-1200][]. The S7-1200 compact controller with built-in PROFINET as a standard interface and enable us to experiment with both IO Controller/IO device options. Example projects for testing basic Profinet communication between CP1616 and S7-1200 are available in Step7 folder.
+For initial phase of development we decided to use new "TIA generation" PLC [S7-1200][]. The S7-1200 compact controller with built-in PROFINET as a standard interface enables us to experiment with both IO Controller/IO device options. Example projects for testing basic Profinet communication between CP1616 and S7-1200 will available in Step7 folder soon.
+
 <p align="center">
 <img src="https://github.com/durovsky/siemens_experimental/blob/master/rep/s7-1200_sys.jpg" />
 </p>
