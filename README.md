@@ -20,7 +20,7 @@ For initial phase of development we decided to use new "TIA generation" PLC [S7-
 
 
 [ROS-Industrial]: http://www.ros.org/wiki/Industrial
-[CP1616]: http://w3.siemens.com/mcms/industrial-communication/en/ie/system-interfacing/system-interfacing-pg-pc/cp1616/pages/cp1616.aspx
+[Siemens CP1616]: http://w3.siemens.com/mcms/industrial-communication/en/ie/system-interfacing/system-interfacing-pg-pc/cp1616/pages/cp1616.aspx
 [S7-1200]: http://w3.siemens.com/mcms/programmable-logic-controller/en/basic-controller/s7-1200/pages/default.aspx
 [DK16xx PN IO software]: http://w3.siemens.com/mcms/industrial-communication/en/ie/system-interfacing/system-interfacing-pg-pc/development-kit-dk16xx/Documents/PROFINET_DK_16xx_PN_IO_en_Web_mit_KF.pdf
 [PROFINET IO]: http://us.profinet.com/technology/profinet/
