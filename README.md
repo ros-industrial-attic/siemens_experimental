@@ -1,6 +1,6 @@
 # siemens_experimental
 
-This repository contains drivers and additional software for Siemens components used in ROS-PROFINET wrapper project:  
+This repository contains following drivers and additional software for Siemens components used in ROS-PROFINET wrapper project:  
  
  - Linux SW for CP1616 V2.6 - original Siemens driver + IO Base, Layer2 and Serv library
  - CP1616 GSD files for integration into Simatic NET configuration
