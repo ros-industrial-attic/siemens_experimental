@@ -19,6 +19,9 @@ For initial phase of development we decided to use new "TIA generation" PLC [S7-
 <img src="https://github.com/durovsky/siemens_experimental/blob/master/rep/s7-1200_sys.jpg" />
 </p>
 
+Image sources
+- CP1616  https://mall.industry.siemens.com/collaterals/files/14/jpg/P_IK10_XX_00591i.jpg
+- S7-1200 https://cache.industry.siemens.com/dl/files/057/57027057/img_23108/v1/s7-1200_sys.jpg
 
 [ROS-Industrial]: http://www.ros.org/wiki/Industrial
 [Siemens CP1616]: http://w3.siemens.com/mcms/industrial-communication/en/ie/system-interfacing/system-interfacing-pg-pc/cp1616/pages/cp1616.aspx
