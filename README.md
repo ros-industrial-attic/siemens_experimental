@@ -9,14 +9,14 @@ This repository contains following drivers and additional software required for 
 #CP1616 
 [ROS-PROFINET wrapper][] utilizes communications module [Siemens CP1616][], which enables PGs/PCs equipped with a PCI slot to be connected to PROFINET IO. With existing Linux support, real-time capabilities and both IO Controller/IO device communications options, we consider this device an ideally suited candidate for connecting [ROS-Industrial][] systems to [PROFINET IO][]. For additional details about Linux support please refer to [DK16xx PN IO software][]. 
 <p align="center">
-<img src="https://github.com/durovsky/siemens_experimental/blob/master/rep/cp1616.jpeg" />
+<img src="https://github.com/durovsky/siemens_experimental/blob/master/img/cp1616.jpeg" />
 </p>
 
 #S7-1200 PLC
 For initial phase of development we decided to use new "TIA generation" PLC [S7-1200][]. The S7-1200 compact controller with built-in PROFINET as a standard interface enables us to experiment with both IO Controller/IO device options. Example projects for testing basic Profinet communication between CP1616 and S7-1200 will be available in Step7 folder soon.
 
 <p align="center">
-<img src="https://github.com/durovsky/siemens_experimental/blob/master/rep/s7-1200_sys.jpg" />
+<img src="https://github.com/durovsky/siemens_experimental/blob/master/img/s7-1200_sys.jpg" />
 </p>
 
 Image sources
