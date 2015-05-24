@@ -1,0 +1,124 @@
+Differenties and similarities in driver code.
+
+0. Intro
+
+Hello, this document try to describe cpecific and
+common parts of current ports.
+
+
+1. Loading of driver
+
+Current ports use two stage loading:
+
+    Windows calls DriverEntry, which registers dispatcher
+    and returns. OS calls "cp16xx_os_pnp_request" with minor
+    IRP_MN_START_DEVICE if card is ready to be start up. PnP dispatcher
+    calls "cp16xx_os_pci_init_resources" which initializes card,
+    allocates resources, etc.
+
+    Linux calls "module_init(cp16xx_os_driver_init)", which registers
+    "driver operations" and "PCI and device ID table", and returns.
+    If OS finds card matching given table, it calls "cp16xx_os_pci_probe",
+    which initializes card, allocates resources, etc.
+
+    Your port can provide direct initialization of card if you like it or
+    your OS does not support two stages (no plug-and-play, no hot plug,
+    no power management).
+
+
+2. Connect firmware
+
+Current ports use third context for this and some other purposes.
+
+    Windows starts kernel thread "cp16xx_daemon_windows" which is wrapper
+    over "cp16xx_daemon".
+
+    Linux starts kernel thread "cp16xx_daemon" directly.
+
+    Your port should utilizate this approach, becouse it sometimes impossible
+    and sometimes dangerous to manipulate DPRAM from system or application
+    context.
+
+
+3. Driver watchdog
+
+Driver watchdog is default off(cp16xx_base.c:137 int watchdog_cycle = 0; )
+You can change it if you like it. Please be carefully, debugging or setting
+of breakpoints can slowdown the code and leads to watchdog timeout in firmware.
+In this case firmware aborts all instances running on firmware. You will be not
+informed or ascked!
+
+
+4. Application interface
+
+Current ports have some similarities in design. All provide
+many channels to application: "control", "sync", "modeind", "alarm", etc.
+Each channel provides "open", "close", "read", "write" and "ioctl" semantic.
+
+    Linux port provides additionally "mmap" semantic.
+
+    Windows port provides similar functionality over "ioctl".
+
+These OS have different methodes to hold application reference.
+
+    Windows version of "cp16xx_os_open" try to descover name of interface
+    called over. Created "interface" structure is saved in
+    "FileObject->FsContext" pointer.
+
+    Linux uses minor number to distinguish interfaces(Minors must be constant,
+    see cp16xxloader script to know more). Created "interface" structure will
+    be saved in "filp->private_data" pointer.
+
+"read" channel has different workflow.
+
+    In Windows it does not allow to block IO manager. We mark request as pending,
+    save request's pointer as reference in "channel" data and return.
+    As soon as data coming, "cp16xx_read_complete" transfers data to user memory
+    pointed by request and complete it. Another possibility is canceling over
+    "cp16xx_os_cancel_irp" or "cp16xx_read_abort".
+
+    In Linux we add request to "waitqueue" and block "read". "cp16xx_read_abort"
+    or "cp16xx_read_complete" releases "waitqueue" and lets "read" return.
+
+"read" from "control" is special kind of communication with driver. This "read"
+is not really reading. We trying to synchronize our IRT callbacks in library with
+IRQ events in driver. No data is transferred at all.
+
+    Very special kind of "control read" is Linux variant with support of Real Time
+    Linux kernel extension called "RTAI". In this case we do not do any system
+    calls at all. "RTAI" Real Time Domain Semaphores are visible in User Space
+    over special "RTAI" API.
+
+
+5. Debugging suggessions
+
+Be sure watchdogs are disabled for first time.
+Define DEBUG for more verbose logging.
+Use sample application "cp16xxtest". This program allow to test isolated big part
+of driver functionality. For example you can write DPRAM bar over "ioctl" and read
+it again over "mmap" to test your "mmap" implementation.
+
+
+6. Porting suggessions
+
+Create subdirectory "driver\<your_os>\". Create in this directory two files,
+"os_<your_os>.h" and "cp16xx_<your_os>.c". Your header file should implement
+as typedefs, defines, macros or static inlines all stuff you can find in
+Linux und/or Windows ports. Your "code" file should implement all functions found
+near end of "cp16xx_base.h". Additionally you should implement layer that binds
+application interface(see topic 4 above) in the mannier your os provides it,
+with driver.
+
+
+7. Ports compability
+
+    Linux port is suitable for every Linux kernel between 2.6.0 and 2.6.18.
+    Both i386 and x86_64 are well tested. Additionally 2.6.8 on SUN sparc64
+    is tested without IRT. This architecture can have issues with DMA too
+    (see definition of DMA_VALID_HOST_MASK for more).
+
+    Windows port is developed and tested with DDK 3790.1830 on Windows XP.
+    Visual Studio projects are for Visual Studio 2005. Please, before you try
+    to build drivers have a look in file "msvc\driver\makebuild.bat" and set
+    enviroinment variable "_DDK_" with path where your DDK installed.
+
