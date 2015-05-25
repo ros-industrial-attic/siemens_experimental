@@ -1,0 +1,353 @@
+/*********************************************************************************************//**
+* @file cpio.c
+* 
+* cp1616_interface testing node
+* 
+* Copyright {2015} {Frantisek Durovsky}
+* 
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+
+*      http://www.apache.org/licenses/LICENSE-2.0
+
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+   
+* *********************************************************************************************/
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include <stdlib.h>
+
+#include "pniousrx.h"
+#include "pnioerrx.h"
+
+//---------------------------------
+//Global variables for CP
+//---------------------------------
+int bDeviceReady       = 0;
+PNIO_UINT32 g_dwCpId   = 1;
+PNIO_UINT32 g_dwHandle = 0;
+int semModChange       = 0;
+volatile PNIO_MODE_TYPE g_currentMode = PNIO_MODE_OFFLINE;
+
+//--------------------------------
+//Global Data fo device
+//--------------------------------
+const PNIO_UINT32 g_deviceInputCount = 3;	//number of input modules
+volatile PNIO_IOXS g_localState = PNIO_S_GOOD;
+volatile PNIO_IOXS g_deviceInputState[g_deviceInputCount]={PNIO_S_BAD, PNIO_S_BAD, PNIO_S_BAD};
+
+//-------------------------------
+//Function declarations
+//-------------------------------
+
+void callback_for_ds_read_conf(PNIO_CBE_PRM *pCbfPrm);              //mandatory callback
+void callback_for_ds_write_conf(PNIO_CBE_PRM *pCbfPrm);             //mandatory callback
+void callback_for_mode_change_indication(PNIO_CBE_PRM *pCbfPrm);    //not mandatory callback
+void callback_for_device_activation(PNIO_CBE_PRM *pCbfPrm);
+void callback_for_alarm_indication(PNIO_CBE_PRM *pCbfPrm);
+
+
+//-------------------------------
+//Function definitions
+//-------------------------------
+PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
+{
+  PNIO_UINT32 dwHandle = 0;   //0 is invalid handle
+  PNIO_UINT32 dwErrorCode = PNIO_OK;
+  
+  //------------------------------------------------------------------------------
+  //Connect to CP and obtain handle
+  dwErrorCode = PNIO_controller_open(
+    /*in*/ CP_INDEX,			   //Communication Module index
+    /*in*/ PNIO_CEP_MODE_CTRL,            //permission to change operation mode
+    /*in*/ callback_for_ds_read_conf,     //mandatory callback
+    /*in*/ callback_for_ds_write_conf,    //mandatory callback
+    /*in*/ callback_for_alarm_indication, //alarm callback
+    /*in*/ &dwHandle			   //handle
+  );
+  
+  printf("-> 0: PNIO Test call PNIO_controller_open \n");
+  //Check errors
+  if(dwErrorCode != PNIO_OK)
+  {
+    printf("Error in Initialize \n");
+    printf("PNIO_controller_open returned 0x%x\n", (int)dwErrorCode);
+    exit(1);  /*exit*/
+  }
+  printf("PNIO_controller_open -> PNIO_OK\n");
+    
+  //------------------------------------------------------------------------------
+  //register the callback PNIO_CBE_MODE_IND for Mode changes confirmation
+  dwErrorCode = PNIO_register_cbf(
+    /*in*/ dwHandle,
+    /*in*/ PNIO_CBE_MODE_IND,
+    /*in*/ callback_for_mode_change_indication
+  );
+  
+  //Check errors
+  if(dwErrorCode != PNIO_OK)
+  {
+      printf("Error in Initialization function !\n");
+      printf("PNIO_register_cbf (PNIO_CBE_MODE_IND,..) returned 0x%x\n", (int)dwErrorCode);
+      PNIO_close(dwHandle);
+      exit(1);
+  }
+  
+  //------------------------------------------------------------------------------
+  //register the callback PNIO_CBE_DEV_ACT for device activation confirmation
+  dwErrorCode = PNIO_register_cbf(
+    /*in*/ dwHandle,
+    /*in*/ PNIO_CBE_DEV_ACT_CONF,
+    /*in*/ callback_for_device_activation
+  );
+  
+  if(dwErrorCode != PNIO_OK){
+    printf("Error in Initialize \n");
+    printf("PNIO_register_cbf (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x\n", (int)dwErrorCode);
+    PNIO_close(dwHandle);
+    exit(1);
+  }
+  
+  return dwHandle;
+   
+}
+
+void ChangeAndWaitForPnioMode(PNIO_UINT32 dwHandle, PNIO_MODE_TYPE mode)
+{
+  PNIO_UINT32 dwErrorCode;
+  
+  //set asynchronous mode
+  dwErrorCode = PNIO_set_mode(dwHandle, mode);
+  
+  if(dwErrorCode != PNIO_OK){
+    printf("Error in ChangeAndWaitForPnioMode \n");
+    printf("PNIO_set_mode returned 0x%x \n", (int)dwErrorCode);
+    PNIO_close(dwHandle);
+    exit(1);
+  };
+  
+  printf("waiting for changing operation mode \n");
+  while (g_currentMode != mode){
+    sleep(1);  //1sec
+    printf(".");
+  };
+  
+  if(dwHandle == g_dwHandle) {
+    printf("waiting for changing operation mode g_dwHandle \n");
+    
+    //wait for new message in the list
+    while(!semModChange){
+      sleep(1);
+    }
+    semModChange = 0;
+  
+    if(g_currentMode != mode){
+      printf("Error in ChangeAndWaitForPnioMode - g_dwHandle recieved another mode\n");
+    }
+    else {
+      printf("Error Handle\n");
+    }
+    
+    printf("\n");
+  }
+}
+
+void UnInitialize(PNIO_UINT32 dwHandle)
+{
+  PNIO_UINT32 dwErrorCode = PNIO_OK;
+  
+  dwErrorCode = PNIO_close(dwHandle);
+  
+  if(dwErrorCode != PNIO_OK)
+  {
+    printf("Error in UnInitialize \n");
+    printf("PNIO_close returned 0x%x\n", (int) dwErrorCode);
+    exit(1);
+  }
+}
+
+
+void callback_for_ds_read_conf(PNIO_CBE_PRM *pCbfPrm)
+{
+  /**************************************************************/
+  /* Attention :                                                */
+  /* this is a callback and must be returned as soon as possible*/
+  /* don't use any endless or time consuming functions          */
+  /* e.g. exit() would be fatal                                 */
+  /* defer all time consuming functionality to other threads    */
+  /**************************************************************/
+
+  printf("callback_for_ds_read_conf \n");
+  printf("this callback must not occur in this sample application\n");
+}
+
+void callback_for_ds_write_conf(PNIO_CBE_PRM* pCbfPrm)
+{
+  /**************************************************************/
+  /* Attention :                                                */
+  /* this is a callback and must be returned as soon as possible */
+  /* don't use any endless or time consuming functions          */
+  /* e.g. exit() would be fatal                                 */
+  /* defer all time consuming functionality to other threads    */
+  /**************************************************************/
+  printf("callback_for_ds_write_conf \n");
+  printf("this callback must not occur in this sample application\n");
+}
+
+void callback_for_mode_change_indication(PNIO_CBE_PRM *pCbfPrm)
+{
+  /**************************************************************/
+  /* Attention :                                                */
+  /* this is a callback and must be returned as soon as possible*/
+  /* don't use any endless or time consuming functions          */
+  /* e.g. exit() would be fatal                                 */
+  /* defer all time consuming functionality to other threads    */
+  /**************************************************************/
+    printf("callback_for_mode_change_indication was called\n");
+    
+  if(pCbfPrm->CbeType==PNIO_CBE_MODE_IND) /* Check callback type */
+  {
+    switch (pCbfPrm->ModeInd.Mode)
+    {
+    case PNIO_MODE_OFFLINE:	
+	  printf("callback_for_mode_change_indication called with PNIO_MODE_OFFLINE\n" );
+          g_currentMode = PNIO_MODE_OFFLINE;
+          break;
+    case PNIO_MODE_CLEAR:
+          g_currentMode = PNIO_MODE_CLEAR;
+          break;
+    case PNIO_MODE_OPERATE:
+	  printf("callback_for_mode_change_indication called with PNIO_MODE_OPERATE\n" );
+	  g_currentMode = PNIO_MODE_OPERATE;
+	  break;
+    default:
+	  printf("callback_for_mode_change_indication called with wrong mode\n" );
+	  break;
+    };
+
+    printf("semModChange g_dwHandle\n");
+
+    /*send notification */
+    semModChange = 1;
+  }
+}
+
+void callback_for_alarm_indication(PNIO_CBE_PRM *pCbfPrm){
+  /**************************************************************/
+  /* Attention :                                                */
+  /* this is a callback and must be returned as soon as possible*/
+  /* don't use any endless or time consuming functions          */
+  /* e.g. exit() would be fatal                                 */
+  /* defer all time consuming functionality to other threads    */
+  /**************************************************************/
+
+  if(pCbfPrm->CbeType==PNIO_CBE_ALARM_IND) /* Check callback type */
+  {
+    switch (pCbfPrm->AlarmInd.pAlarmData->AlarmType)
+    {
+      case PNIO_ALARM_DIAGNOSTIC:
+        printf("PNIO_ALARM_DIAGNOSTIC\n");
+          break;
+      case PNIO_ALARM_PROCESS:
+        printf("PNIO_ALARM_DIAGNOSTIC\n");
+          break;
+      case PNIO_ALARM_PULL:
+        printf("PNIO_ALARM_PULL\n");
+        break;
+
+      case PNIO_ALARM_PLUG:
+        printf("PNIO_ALARM_PLUG\n");
+        break;
+
+      case PNIO_ALARM_STATUS:
+        printf("PNIO_ALARM_STATUS\n");
+        break;
+
+      case PNIO_ALARM_UPDATE:
+        printf("PNIO_ALARM_UPDATE\n");
+        break;
+
+      case PNIO_ALARM_REDUNDANCY:
+        printf("PNIO_ALARM_REDUNDACY\n");
+        break;
+
+      case PNIO_ALARM_CONTROLLED_BY_SUPERVISOR:
+        printf("PNIO_ALARM_CONTROLLED_BY_SUPERVISOR\n");
+        break;
+
+      case PNIO_ALARM_RELEASED_BY_SUPERVISOR:
+        printf("PNIO_ALARM_RELEASED_BY_SUPERVISOR\n");
+        break;
+
+      case PNIO_ALARM_PLUG_WRONG:
+        printf("PNIO_ALARM_PLUG_WRONG\n");
+        break;
+
+      case PNIO_ALARM_RETURN_OF_SUBMODULE:
+        printf("PNIO_ALARM_RETURN_OF_SUBMODULE \n");
+        break;
+
+      case PNIO_ALARM_DEV_FAILURE:
+        printf("PNIO_ALARM_DEV_FAILURE\n");
+        break;
+
+      case PNIO_ALARM_DEV_RETURN:
+        printf("PNIO_ALARM_DEV_RETURN\n");
+        bDeviceReady = 1;
+        break;
+      default:
+         printf("callback_for_alarm_indication called with wrong type\n" );
+      break;
+    }
+  }
+}
+
+void callback_for_device_activation(PNIO_CBE_PRM *pCbfPrm)
+{
+  switch( pCbfPrm->DevActConf.Mode){
+    case PNIO_DA_TRUE:
+      printf ("device with Address %x was activated with result %x\n",
+        (int)pCbfPrm->DevActConf.pAddr->u.Addr,
+        (int)pCbfPrm->DevActConf.Result);
+      break;
+    case PNIO_DA_FALSE:
+      printf ("device with Address %x was deactivated with result %x\n",
+        (int)pCbfPrm->DevActConf.pAddr->u.Addr,
+        (int)pCbfPrm->DevActConf.Result);
+      break;
+  };
+}
+
+int main(int argc, char *argv[])
+{
+  
+  printf("CPIO.c is alive \n");
+  
+  for(int i = 0; i < 3; i++)
+  {
+    bDeviceReady = 0;
+    printf("PNIO Test: Initialize cp: %d ...\n", (int)g_dwCpId);
+    g_dwHandle = Initialize(g_dwCpId);
+    
+    //Change mode to PNIO_MODE_OPERATE
+    printf("PNIO test: changemode OPERATE - Handle 0x%x ...\n", (int)g_dwHandle);
+    ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OPERATE);
+    
+    sleep(5);
+    
+    printf("PNIO test: changemode OFFLINE - Handle 0x%x ...\n", (int)g_dwHandle);
+    ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OFFLINE);
+    
+    printf("UnInitialize CP: %d ... \n", (int)g_dwCpId);
+    UnInitialize(g_dwHandle);
+    
+  }
+  
+  return(EXIT_SUCCESS);
+}
