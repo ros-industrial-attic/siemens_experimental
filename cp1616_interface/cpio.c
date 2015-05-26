@@ -27,7 +27,7 @@
 #include "pnioerrx.h"
 
 //---------------------------------
-//Global variables for CP
+//Global data for CP
 //---------------------------------
 int bDeviceReady       = 0;
 PNIO_UINT32 g_dwCpId   = 1;
@@ -35,12 +35,50 @@ PNIO_UINT32 g_dwHandle = 0;
 int semModChange       = 0;
 volatile PNIO_MODE_TYPE g_currentMode = PNIO_MODE_OFFLINE;
 
+
 //--------------------------------
 //Global Data fo device
 //--------------------------------
+//INPUT DATA
 const PNIO_UINT32 g_deviceInputCount = 3;	//number of input modules
 volatile PNIO_IOXS g_localState = PNIO_S_GOOD;
 volatile PNIO_IOXS g_deviceInputState[g_deviceInputCount]={PNIO_S_BAD, PNIO_S_BAD, PNIO_S_BAD};
+
+PNIO_ADDR g_deviceInputAddress[g_deviceInputCount] = 
+{
+  { PNIO_ADDR_LOG, PNIO_IO_IN, {0}},   //output address of first output module 
+  { PNIO_ADDR_LOG, PNIO_IO_IN, {1}},   //output address of second output module
+  { PNIO_ADDR_LOG, PNIO_IO_IN, {2}}    //output address of third output module
+};
+
+PNIO_UINT32 g_deviceInputLength[g_deviceInputCount] = 
+{
+  1, //length in bytes of first input module
+  1, //length in bytes of second input module
+  1  //length in bytes of third input module
+};
+
+PNIO_UINT8 g_deviceInputData[g_deviceInputCount];
+
+//OUTPUT DATA
+const PNIO_UINT32 g_deviceOutputCount = 3;
+volatile PNIO_IOXS g_deviceOutputState[g_deviceOutputCount] = {PNIO_S_BAD, PNIO_S_BAD, PNIO_S_BAD};
+
+PNIO_ADDR g_deviceOutputAddress[g_deviceOutputCount] = 
+{
+  {PNIO_ADDR_LOG, PNIO_IO_OUT, {0}},   //output address of first output module
+  {PNIO_ADDR_LOG, PNIO_IO_OUT, {1}},   //output address of second output module
+  {PNIO_ADDR_LOG, PNIO_IO_OUT, {2}}    //output address of third output module
+};
+
+PNIO_UINT32 g_deviceOutputLength[g_deviceOutputCount] = 
+{
+  1,	//length in bytes of first output module
+  1,   //length in bytes of second output module
+  1    //length in bytes of third output module
+};
+
+PNIO_UINT8 g_deviceOutputData[g_deviceOutputCount];
 
 //-------------------------------
 //Function declarations
@@ -157,6 +195,47 @@ void ChangeAndWaitForPnioMode(PNIO_UINT32 dwHandle, PNIO_MODE_TYPE mode)
     printf("\n");
   }
 }
+
+void UpdateCyclicOutputData(PNIO_UINT32 dwHandle)
+{
+  PNIO_UINT32 dwErrorCode;
+    for(unsigned int i=0;i<g_deviceOutputCount;i++) {
+        dwErrorCode=PNIO_data_write(
+            /*in*/ dwHandle,                             //handle                            
+            /*in*/ &(g_deviceOutputAddress[i]),          // pointer to device output address 
+            /*in*/ g_deviceOutputLength[i],              // length in bytes of output        
+            /*in*/ &(g_deviceOutputData[i]),             // pointer to output data           
+            /*in*/ g_localState,                         // local status                     
+            /*out*/(PNIO_IOXS*)&(g_deviceOutputState[i]) // remote status                    
+            );
+    }
+    if(dwErrorCode != PNIO_OK){
+      printf("Error in UpdateCyclicOutputData \n");
+      printf("PNIO_write_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x\n", (int)dwErrorCode);
+    }
+}
+
+void UpdateCyclicInputData(PNIO_UINT32 dwHandle)
+{
+  PNIO_UINT32 dwErrorCode;
+    PNIO_UINT32 dwBytesReaded;
+    for(unsigned int i=0;i<g_deviceInputCount;i++) {
+        dwErrorCode=PNIO_data_read(
+            /*in*/  dwHandle,                             //handle                           
+            /*in*/  &g_deviceInputAddress[i],             // pointer to device input address 
+            /*in*/  g_deviceInputLength[i],               // length in bytes of input        
+            /*out*/ &dwBytesReaded,                       // number of bytes read            
+            /*in*/  &g_deviceInputData[i],                // pointer to input data            
+            /*in*/  g_localState,                         // local status                    
+            /*out*/(PNIO_IOXS*)&(g_deviceInputState[i])   // remote status                   
+            );
+    }
+    if(dwErrorCode != PNIO_OK){
+      printf("Error in UpdateCyclicInputData \n");
+      printf("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x\n", (int)dwErrorCode);
+    }
+}
+
 
 void UnInitialize(PNIO_UINT32 dwHandle)
 {
@@ -327,27 +406,29 @@ void callback_for_device_activation(PNIO_CBE_PRM *pCbfPrm)
 int main(int argc, char *argv[])
 {
   
-  printf("CPIO.c is alive \n");
-  
-  for(int i = 0; i < 3; i++)
-  {
-    bDeviceReady = 0;
-    printf("PNIO Test: Initialize cp: %d ...\n", (int)g_dwCpId);
-    g_dwHandle = Initialize(g_dwCpId);
+  printf("Application does following: \n");
+  printf("1. Initialize CP\n");
+  printf("2. Change mode to OPERATE\n");
+  printf("3. Wait\n");
+  printf("4. Change mode to OFFLINE\n");
+  printf("5. Uninitialize CP\n");
+  printf("---------------------------------\n");
+      
+  bDeviceReady = 0;
+  printf("PNIO Test: Initialize cp: %d ...\n", (int)g_dwCpId);
+  g_dwHandle = Initialize(g_dwCpId);
     
-    //Change mode to PNIO_MODE_OPERATE
-    printf("PNIO test: changemode OPERATE - Handle 0x%x ...\n", (int)g_dwHandle);
-    ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OPERATE);
+  //Change mode to PNIO_MODE_OPERATE
+  printf("PNIO test: changemode OPERATE - Handle 0x%x ...\n", (int)g_dwHandle);
+  ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OPERATE);
     
-    sleep(5);
+  sleep(5);
     
-    printf("PNIO test: changemode OFFLINE - Handle 0x%x ...\n", (int)g_dwHandle);
-    ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OFFLINE);
+  printf("PNIO test: changemode OFFLINE - Handle 0x%x ...\n", (int)g_dwHandle);
+  ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OFFLINE);
     
-    printf("UnInitialize CP: %d ... \n", (int)g_dwCpId);
-    UnInitialize(g_dwHandle);
+  printf("UnInitialize CP: %d ... \n", (int)g_dwCpId);
+  UnInitialize(g_dwHandle);
     
-  }
-  
   return(EXIT_SUCCESS);
 }
