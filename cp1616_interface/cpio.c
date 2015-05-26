@@ -409,7 +409,7 @@ int main(int argc, char *argv[])
   printf("Application does following: \n");
   printf("1. Initialize CP\n");
   printf("2. Change mode to OPERATE\n");
-  printf("3. Wait\n");
+  printf("3. Update input and output data in loop\n");
   printf("4. Change mode to OFFLINE\n");
   printf("5. Uninitialize CP\n");
   printf("---------------------------------\n");
@@ -422,7 +422,26 @@ int main(int argc, char *argv[])
   printf("PNIO test: changemode OPERATE - Handle 0x%x ...\n", (int)g_dwHandle);
   ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OPERATE);
     
-  sleep(5);
+  //Update data loop
+  for(unsigned int i = 0; i < 10; i++)
+  {
+    UpdateCyclicOutputData(g_dwHandle);
+    UpdateCyclicInputData(g_dwHandle);
+    
+    printf("output:0x%x  output device state:%s \n",
+	   g_deviceOutputData[0],
+           ((g_deviceOutputState[0]==PNIO_S_GOOD)?"good":"bad")
+	   );
+    
+    printf("input:0x%x  input device state:%s \n",
+	   g_deviceInputData[0],
+           ((g_deviceInputState[0]==PNIO_S_GOOD)?"good":"bad")
+	   );
+    
+    sleep(1);
+       
+  }
+  
     
   printf("PNIO test: changemode OFFLINE - Handle 0x%x ...\n", (int)g_dwHandle);
   ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OFFLINE);
