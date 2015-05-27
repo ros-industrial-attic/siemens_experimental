@@ -17,7 +17,7 @@ ifeq ($(RTAI),y)
      $(shell rtai-config --prefix)/bin/rtai-config,\
      $(shell /usr/realtime/bin/rtai-config --prefix)/bin/rtai-config)
 
-    #CFLAGS += -I$(shell $(rtaiconfigbin) --prefix)/include -DRTAI -L$(shell $(rtaiconfigbin) --library-dir) -llxrt
+    CFLAGS += -I$(shell $(rtaiconfigbin) --prefix)/include -DRTAI -L$(shell $(rtaiconfigbin) --library-dir) -llxrt
     CFLAGS += -I$(shell $(rtaiconfigbin) --prefix)/include -DRTAI $(shell $(rtaiconfigbin) --library-dir)/liblxrt.a
 endif
 ifeq ($(XENO),y)
@@ -34,13 +34,16 @@ ifeq ($(LATENCY),y)
 endif
 
 SRC1 = $(TOPDIR)/cpio.c
-
-EXE = cpio
+SRC2 = $(TOPDIR)/cpio_device.c
+EXE = cpio cpio_device
 
 all: $(EXE)
 
 cpio: $(SRC1)
-	g++ $(CFLAGS) -o cpio $(SRC1) -lpniousr
+	g++ $(CFLAGS) -o cpio $(SRC1) -lpniousr 
+
+cpio_device: $(SRC2)
+	g++ $(CFLAGS) -o cpio_device $(SRC2) -lpniousr 
 
 clean:
 	rm -f $(EXE)
