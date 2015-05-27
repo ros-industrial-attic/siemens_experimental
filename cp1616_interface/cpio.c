@@ -98,8 +98,9 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
 {
   PNIO_UINT32 dwHandle = 0;   //0 is invalid handle
   PNIO_UINT32 dwErrorCode = PNIO_OK;
+   
+  printf("Open PNIO_controller: ");
   
-  //------------------------------------------------------------------------------
   //Connect to CP and obtain handle
   dwErrorCode = PNIO_controller_open(
     /*in*/ CP_INDEX,			   //Communication Module index
@@ -110,15 +111,14 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
     /*in*/ &dwHandle			   //handle
   );
   
-  printf("-> 0: PNIO Test call PNIO_controller_open \n");
+  
   //Check errors
   if(dwErrorCode != PNIO_OK)
   {
-    printf("Error in Initialize \n");
-    printf("PNIO_controller_open returned 0x%x\n", (int)dwErrorCode);
+    printf("ERROR:  0x%x\n", (int)dwErrorCode);
     exit(1);  /*exit*/
   }
-  printf("PNIO_controller_open -> PNIO_OK\n");
+  printf("SUCCESS\n");
     
   //------------------------------------------------------------------------------
   //register the callback PNIO_CBE_MODE_IND for Mode changes confirmation
@@ -131,8 +131,7 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
   //Check errors
   if(dwErrorCode != PNIO_OK)
   {
-      printf("Error in Initialization function !\n");
-      printf("PNIO_register_cbf (PNIO_CBE_MODE_IND,..) returned 0x%x\n", (int)dwErrorCode);
+      printf("Error in PNIO_register_cbf:  0x%x\n", (int)dwErrorCode);
       PNIO_close(dwHandle);
       exit(1);
   }
@@ -146,8 +145,7 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
   );
   
   if(dwErrorCode != PNIO_OK){
-    printf("Error in Initialize \n");
-    printf("PNIO_register_cbf (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x\n", (int)dwErrorCode);
+    printf("Error in PNIO_register_cbf:  0x%x\n", (int)dwErrorCode);
     PNIO_close(dwHandle);
     exit(1);
   }
@@ -159,25 +157,20 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
 void ChangeAndWaitForPnioMode(PNIO_UINT32 dwHandle, PNIO_MODE_TYPE mode)
 {
   PNIO_UINT32 dwErrorCode;
+  printf("Change PNIO mode ");
   
   //set asynchronous mode
   dwErrorCode = PNIO_set_mode(dwHandle, mode);
   
   if(dwErrorCode != PNIO_OK){
-    printf("Error in ChangeAndWaitForPnioMode \n");
-    printf("PNIO_set_mode returned 0x%x \n", (int)dwErrorCode);
+    printf("ERROR: 0x%x \n", (int)dwErrorCode);
     PNIO_close(dwHandle);
     exit(1);
   };
-  
-  printf("waiting for changing operation mode \n");
-  while (g_currentMode != mode){
-    sleep(1);  //1sec
-    printf(".");
-  };
-  
+    
+    
   if(dwHandle == g_dwHandle) {
-    printf("waiting for changing operation mode g_dwHandle \n");
+    
     
     //wait for new message in the list
     while(!semModChange){
@@ -185,22 +178,22 @@ void ChangeAndWaitForPnioMode(PNIO_UINT32 dwHandle, PNIO_MODE_TYPE mode)
     }
     semModChange = 0;
   
+    //check if the current mode is correct
     if(g_currentMode != mode){
-      printf("Error in ChangeAndWaitForPnioMode - g_dwHandle recieved another mode\n");
+      printf("ERROR : recieved another mode\n");
     }
     else {
-      printf("Error Handle\n");
+      printf("SUCCESS\n");
     }
-    
-    printf("\n");
+   
   }
 }
 
 void UpdateCyclicOutputData(PNIO_UINT32 dwHandle)
 {
   PNIO_UINT32 dwErrorCode;
-    for(unsigned int i=0;i<g_deviceOutputCount;i++) {
-        dwErrorCode=PNIO_data_write(
+  for(unsigned int i=0;i<g_deviceOutputCount;i++) {
+      dwErrorCode=PNIO_data_write(
             /*in*/ dwHandle,                             //handle                            
             /*in*/ &(g_deviceOutputAddress[i]),          // pointer to device output address 
             /*in*/ g_deviceOutputLength[i],              // length in bytes of output        
@@ -218,8 +211,8 @@ void UpdateCyclicOutputData(PNIO_UINT32 dwHandle)
 void UpdateCyclicInputData(PNIO_UINT32 dwHandle)
 {
   PNIO_UINT32 dwErrorCode;
-    PNIO_UINT32 dwBytesReaded;
-    for(unsigned int i=0;i<g_deviceInputCount;i++) {
+  PNIO_UINT32 dwBytesReaded;
+  for(unsigned int i=0;i<g_deviceInputCount;i++) {
         dwErrorCode=PNIO_data_read(
             /*in*/  dwHandle,                             //handle                           
             /*in*/  &g_deviceInputAddress[i],             // pointer to device input address 
@@ -239,16 +232,17 @@ void UpdateCyclicInputData(PNIO_UINT32 dwHandle)
 
 void UnInitialize(PNIO_UINT32 dwHandle)
 {
+  printf("Close PNIO_controller: ");
   PNIO_UINT32 dwErrorCode = PNIO_OK;
   
   dwErrorCode = PNIO_close(dwHandle);
   
   if(dwErrorCode != PNIO_OK)
   {
-    printf("Error in UnInitialize \n");
-    printf("PNIO_close returned 0x%x\n", (int) dwErrorCode);
+    printf("Error 0x%x\n", (int) dwErrorCode);
     exit(1);
   }
+  printf("SUCCESS\n");
 }
 
 
@@ -288,29 +282,29 @@ void callback_for_mode_change_indication(PNIO_CBE_PRM *pCbfPrm)
   /* e.g. exit() would be fatal                                 */
   /* defer all time consuming functionality to other threads    */
   /**************************************************************/
-    printf("callback_for_mode_change_indication was called\n");
-    
+        
   if(pCbfPrm->CbeType==PNIO_CBE_MODE_IND) /* Check callback type */
   {
     switch (pCbfPrm->ModeInd.Mode)
     {
     case PNIO_MODE_OFFLINE:	
-	  printf("callback_for_mode_change_indication called with PNIO_MODE_OFFLINE\n" );
+	  printf("request: OFFLINE: " );
           g_currentMode = PNIO_MODE_OFFLINE;
           break;
     case PNIO_MODE_CLEAR:
+          printf("request: CLEAR: ");
           g_currentMode = PNIO_MODE_CLEAR;
           break;
     case PNIO_MODE_OPERATE:
-	  printf("callback_for_mode_change_indication called with PNIO_MODE_OPERATE\n" );
+	  printf("request: OPERATE: " );
 	  g_currentMode = PNIO_MODE_OPERATE;
 	  break;
     default:
-	  printf("callback_for_mode_change_indication called with wrong mode\n" );
+	  printf("Wrong mode selected: " );
 	  break;
     };
 
-    printf("semModChange g_dwHandle\n");
+    //printf("semModChange g_dwHandle\n");
 
     /*send notification */
     semModChange = 1;
@@ -412,17 +406,16 @@ int main(int argc, char *argv[])
   printf("3. Update input and output data in loop\n");
   printf("4. Change mode to OFFLINE\n");
   printf("5. Uninitialize CP\n");
-  printf("---------------------------------\n");
+  printf("---------------------------------\n\n");
       
+  //Initialize
   bDeviceReady = 0;
-  printf("PNIO Test: Initialize cp: %d ...\n", (int)g_dwCpId);
   g_dwHandle = Initialize(g_dwCpId);
     
   //Change mode to PNIO_MODE_OPERATE
-  printf("PNIO test: changemode OPERATE - Handle 0x%x ...\n", (int)g_dwHandle);
   ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OPERATE);
     
-  //Update data loop
+  //Update data 
   for(unsigned int i = 0; i < 10; i++)
   {
     UpdateCyclicOutputData(g_dwHandle);
@@ -441,12 +434,11 @@ int main(int argc, char *argv[])
     sleep(1);
        
   }
-  
-    
-  printf("PNIO test: changemode OFFLINE - Handle 0x%x ...\n", (int)g_dwHandle);
+
+  //change current mode to offline  
   ChangeAndWaitForPnioMode(g_dwHandle, PNIO_MODE_OFFLINE);
     
-  printf("UnInitialize CP: %d ... \n", (int)g_dwCpId);
+  //UnInitialize
   UnInitialize(g_dwHandle);
     
   return(EXIT_SUCCESS);
