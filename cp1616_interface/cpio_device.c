@@ -78,9 +78,10 @@
 #include "pniousrd.h"
 #include "pnioerrx.h"
 
-//-----------------------------
-//Typedefs
-//-----------------------------
+/************************************************/
+/*Typedefs                                      */
+/************************************************/
+
 typedef struct device_data_s
 {
     int slot;
@@ -95,20 +96,28 @@ typedef struct device_data_s
 } device_data_t;
 
 
-//---------------------------------
-//Global data for CP
-//---------------------------------
-PNIO_UINT32 g_dwCpId   = 1;                        //CP INDEX
-PNIO_UINT32 g_dwHandle = 0;                        //Device Handle				 
+/************************************************/
+/*Global data for CP                            */
+/************************************************/
+PNIO_UINT32 g_dwCpId   = 1;                           //CP INDEX
+PNIO_UINT32 g_dwHandle = 0;                           //Device Handle				 
 
-static device_data_t device_data[] = { DEVICE_DATA };
+static device_data_t device_data[] = { DEVICE_DATA }; //Data Structure
 
 device_data_t *g_device_data = NULL;
-static int g_dwArraySize = DEVICE_DATA_ENTRIES;    //Total number of slots as configured in the STEP7 project
+static int g_dwArraySize = DEVICE_DATA_ENTRIES;       //Total number of slots as configured in the STEP7 project
 
-//-------------------------------
-//Function definitions
-//-------------------------------
+
+
+/*********************************************************** */
+/*                                                           */
+/*Function:        Initialize()                              */
+/*                                                           */
+//************************************************************/
+/* The function does the initialization of the PNIO device   */
+/* registration of callbacks is part of initialization       */
+/*************************************************************/
+
 
 PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
 {
@@ -149,8 +158,7 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
   structCBFunctions.cbf_device_stopped    = PNIO_cbf_device_stopped;
   structCBFunctions.cbf_start_led_flash   = NULL;
   structCBFunctions.cbf_stop_led_flash    = NULL;  
-    
-     
+         
   printf("Open PNIO_device: ");
   
   //Connect to CP and obtain handle
@@ -177,6 +185,38 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
   return dwHandle;
 }
 
+/*********************************************************** */
+/*                                                           */
+/*Function:        UnInitialize()                            */
+/*                                                           */
+//************************************************************/
+/* The function does the deinitialization of the PNIO device */
+/*************************************************************/
+
+void UnInitialize(PNIO_UINT32 dwHandle)
+{
+  printf("Close PNIO_device: ");
+  PNIO_UINT32 dwErrorCode = PNIO_OK;
+  
+  dwErrorCode = PNIO_device_close(dwHandle);
+  
+  if(dwErrorCode != PNIO_OK)
+  {
+    printf("Error 0x%x\n", (int) dwErrorCode);
+    exit(1);
+  }
+  printf("SUCCESS\n");
+}
+
+/*********************************************************** */
+/*                                                           */
+/*Function:        AddApi()                                  */
+/*                                                           */
+//************************************************************/
+/* The function adds all the api stated in configuration     */
+/* structure for each module/submodule                       */
+/*************************************************************/
+
 void AddApi(void)
 {
   int i;
@@ -199,8 +239,7 @@ void AddApi(void)
 	//api was added 
 	break;
       }
-    }
-    
+    }    
   }
   
   if(i == j) { /* not added, add a new api */
@@ -231,27 +270,71 @@ void AddApi(void)
     /*in*/ (PNIO_UINT16) highestSubslotNumber
   );
   if(dwErrorCode != PNIO_OK)
-  {
     printf("Error 0x%x\n", (int) dwErrorCode);
-    exit(1);
-  }
-  printf("SUCCESS\n");
+  else
+    printf("SUCCESS\n");
   
 }
 
+/*********************************************************** */
+/*                                                           */
+/*Function:        RemoveApi()                               */
+/*                                                           */
+//************************************************************/
+/* The function remove all the api stated in configuration   */
+/* structure                                                 */
+/*************************************************************/
+void RemoveApi(void)
+{
+  int i;
+  int j;
+  PNIO_UINT32 api;
+  PNIO_UINT32 dwErrorCode = PNIO_OK;
+  
+  printf("Removing Api: ")
+  //for each slot
+  for(i = j = 0; i < g_dwArraySize && status == PNIO_OK; i++)
+  {
+    //read api from configuration data
+    api = g_device_data[i].api;
+    
+    //look if the api has been added at a prior position in our g_device_data structure
+    for(j = 0; j < i; j++)
+    {
+      if(api == g_device_data[j].api) break; // api added at a prior position, hence it has already been removed
+    }
+  
+    if(i == j) //api not removed yet
+    {
+      dwErrorCode = PNIO_api_remove(g_dwHandle, api);
+      if(dwErrorCode != PNIO_OK)
+        printf("Error\n");
+      else     
+        printf("SUCCESS")
+  }
+}
+
+/*********************************************************** */
+/*                                                           */
+/*Function:        AddModSubMod()                            */
+/*                                                           */
+//************************************************************/
+/* The function adds all the modules and submodules of the   */
+/* device in serial order                                    */
+/*************************************************************/
 
 void AddModSubMod(void)
 {
   PNIO_UINT32 dwErrorCode = PNIO_OK;
   PNIO_DEV_ADDR addr;     //location (module/submodule)
   int slot = 0;
-  int entries = g_dwArraySize;
   int i;
   
   addr.AddrType = PNIO_ADDR_GEO;    //must be PNIO_ADDR_GEO
   
-  //-------------------------------------------------------------------------------
+  //---------------------------------------------------
   //Add module 0 
+  //---------------------------------------------------
   printf("Pluging module 0 ... \n");
   addr.u.Geo.Slot    = g_device_data[0].slot;    //plug module 0
   addr.u.Geo.Subslot = g_device_data[0].subslot  //get the corresponding sub-slot
@@ -260,19 +343,18 @@ void AddModSubMod(void)
     /*in*/ g_dwHandle,   		//device handle
     /*in*/ g_device_data[0].api,       //api number
     /*in*/ &addr,                      //location(slot, subslot)
-    /*in*/ g_device_data[0].modId      //module 0 identifier
-           );
+    /*in*/ g_device_data[0].modId);    //module 0 identifier
+          
   
   if(dwErrorCode != PNIO_OK)
   {
     printf("Error 0x%x\n", (int) dwErrorCode);
-    g_device_data[0].modState = 1;
-    exit(1);
+    g_device_data[0].modState = 0;
   }
   else
   {
     printf("SUCCESS\n");
-    g_device_data[0].modState = 0;
+    g_device_data[0].modState = 1;
   }
   
   printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
@@ -280,32 +362,34 @@ void AddModSubMod(void)
         g_device_data[0].slot,
         g_device_data[0].subslot,
         g_device_data[0].maxSubslots,
-        g_device_data[0].modId
-        );
+        g_device_data[0].modId);
+        
   
   if(!g_device_data[0].modState) {
         printf("ERROR: Failure in plugging module 0 -> no other module / submodule will be plugged...\n");
-    }
+	exit(1);    
+  }
   
+  //-----------------------------------------------------
   //Add submodule corresponding to module 0
+  //-----------------------------------------------------
   printf("Pluging submodule 0 to module 0...\n");
   dwErrorCode = PNIO_sub_plug (
      /*in*/ g_hDevice,                    /* device handle */
      /*in*/ g_device_data[0].api,         /* api number */
      /*in*/ &addr,                        /* location (slot, subslot) */
-     /*in*/ g_device_data[0].subslotId    /* submodule 0 identifier */
-            );      
+     /*in*/ g_device_data[0].subslotId);  /* submodule 0 identifier */
+                
   
   if(dwErrorCode != PNIO_OK)
   {
     printf("Error 0x%x\n", (int) dwErrorCode);
-    g_device_data[0].modState = 1;
-    exit(1);
+    g_device_data[0].subState = 0;
   }
   else
   {
     printf("SUCCESS\n");
-    g_device_data[0].modState = 0;
+    g_device_data[0].subState = 1;
   }
   
    printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
@@ -318,26 +402,196 @@ void AddModSubMod(void)
     if(!g_device_data[0].subState) {
         printf("ERROR: Failure in plugging the submodule corresponding to module 0\n");
         printf(" -> no other module / submodule will be plugged...\n");
+	exit(1);
     }
   
   printf("Pluging another modules, submodules...\n");
   
+  //----------------------------------------------------
+  //Add all modules
+  //----------------------------------------------------
+  
+  for(i = 1; i < g_dwArraySize)
+  {
+    addr.u.Geo.Slot    = g_device_data[i].slot;	//plug module at correct slot 
+    addr.u.Geo.Subslot = g_device_data[i].subslot;    //get the corresponding sub-slot
+    
+    printf("Pluging module %d: " ,i);
+    dwErrorCode = PNIO_mod_plug(
+       /*in*/ g_dwHandle,   		   //device handle
+       /*in*/ g_device_data[i].api,       //api number
+       /*in*/ &addr,                      //location(slot, subslot)
+       /*in*/ g_device_data[i].modId);    //module identifier
+                  
+    if(dwErrorCode != PNIO_OK)
+    {
+      printf("Error 0x%x\n", (int) dwErrorCode);
+      g_device_data[i].modState = 0;
+    }
+    else
+    {
+      printf("SUCCESS\n");
+      g_device_data[i].modState = 1;
+    }
+    
+    printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
+          g_device_data[i].api,
+          g_device_data[i].slot,
+          g_device_data[i].subslot,
+          g_device_data[i].maxSubslots,
+          g_device_data[i].modId);
+   
+    if(dwErrorCode == PNIO_OK)
+    {
+       //advance in the g_device_data structure jumping over all the submodule entries
+       //to reach the next module entry in the structure
+       i += g_device_data[i].maxSubslots;
+    }
+    else
+    {
+      //go to the next entry in g_device_data table
+      i++;
+    }
+        
+  } //end for
+ 
+  //----------------------------------------------------
+  //Add all submodules
+  //----------------------------------------------------
+  for(i = 1; i < g_dwArraySize; i++)
+  {
+    if(g_device_data[i].maxSubslots > 0){
+      //beginning of a new slot
+      slot = i;   //index of corresponding slot for a given subslot
+      
+      g_device_data[slot].subState = 1; 
+    }
+    
+    if(g_device_data[slot].modState)
+    {
+      //add submodule only if the module is added
+      addr.u.Geo.Slot     = g_device_data[i].slot;
+      addr.u.Geo.Subslot  = g_device_data[i].subslot;
+      
+      printf("Pluging submodule to module %d:", i);
+      dwErrorCode = PNIO_sub_plug (
+       /*in*/ g_dwHandle,                   //device handle
+       /*in*/ g_device_data[i].api,         //api number
+       /*in*/ &addr,                        //location(slot, subslot)
+       /*in*/ g_device_data[i].subslotId);  //submodule identifier
+	
+      if(dwErrorCode != PNIO_OK)
+      {
+	printf("Error 0x%x\n", (int) dwErrorCode);
+	g_device_data[i].subState = 0;
+	g_device_data[slot].subState = 0;
+      }
+      else
+      {
+	printf("SUCCESS\n");
+	g_device_data[i].subState = 1;
+      }
+      
+      printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
+          g_device_data[i].api,
+          g_device_data[i].slot,
+          g_device_data[i].subslot,
+          g_device_data[i].maxSubslots,
+          g_device_data[i].modId);
+    }
+  }  //end for
+ 
+  //if not all the modules/submodules are plugger correctyl, print warning
+  for(i = 0; i < g_dwArraySize; i++)
+  {
+    if(g_device_data[i].subState == 0)
+    {
+      printf("WARNING: Not all modules or submodules were plugged correctly!!\n");
+      break;
+    }
+  } 
 }
 
-
-void UnInitialize(PNIO_UINT32 dwHandle)
+/*********************************************************** */
+/*                                                           */
+/*Function:        RemoveModSubMod()                         */
+/*                                                           */
+//************************************************************/
+/* The function first removes the submodules and then the    */
+/* modules from PNIO device in reverse order                 */
+/*************************************************************/
+void RemodeModSubMod(void)
 {
-  printf("Close PNIO_device: ");
-  PNIO_UINT32 dwErrorCode = PNIO_OK;
+  int i;
+  PNIO_DEV_ADDR addr;   //location module/submodule
+  PNIO_UINT32 dwErrorCode 
   
-  dwErrorCode = PNIO_device_close(dwHandle);
-  
-  if(dwErrorCode != PNIO_OK)
+  //Remove modules/submodules in reverse order
+  for(i = g_dwArraySize -1; i >= 0 && dwErrorCode == PNIO_OK; i--)
   {
-    printf("Error 0x%x\n", (int) dwErrorCode);
-    exit(1);
-  }
-  printf("SUCCESS\n");
+    if(g_device_data[i].subState == 1)
+    {
+      addr.AddrType      = PNIO_ADDR_GEO;          //must be PNIO_ADDR_GEO
+      addr.u.Geo.Slot    = g_device_data[i].slot;  //slot number
+      addr.u.Geo.Subslot = g_device_data[i].subslot;
+      
+      //----------------------------------------------------
+      //Remove submodules
+      //----------------------------------------------------
+      printf("Removing submodule:")
+      dwErrorCode = PNIO_sub_pull(
+	/*in*/ g_dwHandle,
+	/*in*/ g_device_data[i].api, &addr);
+      
+      if(dwErrorCode == PNIO_OK)
+      {
+	printf("SUCCESS\n");
+	g_device_data[i].subState = 0;
+      }
+      else
+	printf("Error 0x%x\n", (int) dwErrorCode);
+      
+        printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
+                g_device_data[i].api,
+                g_device_data[i].slot,
+                g_device_data[i].subslot,
+                g_device_data[i].maxSubslots,
+                g_device_data[i].modId);
+      
+       //Notify the controller that the device state is NOT-OK every time after removing a submodule
+      dwErrorCode = PNIO_set_dev_state(g_dwHandle, PNIO_DEVSTAT_STATION_PROBLEM);
+    }
+    
+    if(dwErrorCode == PNIO_OK && g_device_data[i].modState == 1)
+    {
+      addr.AddrType      = PNIO_ADDR_GEO;		//must be PNIO_ADDR_GEO
+      addr.u.Geo.Slot    = g_device_data[i].slot;     //slot number
+      addr.u.Geo.Subslot = 1;				//doesnt matter
+      
+      //----------------------------------------------------
+      //Remove modules
+      //----------------------------------------------------
+      printf("Removing module: ")
+      dwErrorCode = PNIO_mod_pull(g_dwHandle, g_device_data[i].api, &addr);
+      
+       if(dwErrorCode == PNIO_OK)
+      {
+	printf("SUCCESS\n");
+	g_device_data[i].subState = 0;
+      }
+      else
+	printf("Error 0x%x\n", (int) dwErrorCode);
+      
+      printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
+                g_device_data[i].api,
+                g_device_data[i].slot,
+                g_device_data[i].subslot,
+                g_device_data[i].maxSubslots,
+                g_device_data[i].modId);
+      
+      dwErrorCode = PNIO_set_dev_state(g_dwHandle, PNIO_DEVSTAT_STATION_PROBLEM);     
+    }      
+  }  
 }
 
 
@@ -361,10 +615,17 @@ int main(void)
   //Add modules and submodules to the device
   AddModSubMod();
   
+  //Remove the modules and submodules
+  RemodeModSubMod();
+  
+  //Remove the API
+  RemoveApi();
+  
   //Uninitialize
   UnInitialize(g_dwHandle);
   
-  
+  //set handle to invalid values
+  g_dwHandle = 0; 
   
   
   
