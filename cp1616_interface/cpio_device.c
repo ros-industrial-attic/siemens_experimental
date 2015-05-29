@@ -378,7 +378,7 @@ void PNIO_cbf_prm_end_ind(
 {
   int i=0;
   
-  // Wait (MAX_COUNT x 10s) for PNIO_cbf_ar_info_ind() Callbacks
+  // Wait (MAX_COUNT x 0.1s) for PNIO_cbf_ar_info_ind() Callbacks
   while (AR_INFO_IND_flag == 0)
   {
     if (i==MAX_COUNT)
@@ -387,7 +387,7 @@ void PNIO_cbf_prm_end_ind(
       return;
     }
     i++;
-    sleep(10);
+    usleep(100000);
   }
     printf ("\n## Event parametrizing phase -Application ready- received, ArNumber = %x\n\n",
         ArNumber);
@@ -517,6 +517,90 @@ void PNIO_cbf_apdu_status_ind(
     printf("APDU Status Change not supported");
 }
 
+/*********************************************************** */
+/*                                                           */
+/*Function:        do_after_prm_end_ind_cbf()                */
+/*                                                           */
+//************************************************************/
+/* This function is called after the PNIO_cbf_prm_end_ind    */
+/*callback has been called, it calls PNIO_initiate_dat_write */
+/*PNIO_initiate_data_read and PNIO_set_appl_state_ready      */       
+/*************************************************************/
+
+void do_after_prm_end_ind_cbf(void)
+{
+  PNIO_UINT32 dwErrorCode;
+  PNIO_APPL_READY_LIST_TYPE readyListType;
+  
+  /* Here we need to call "PNIO_initiate_data_write" so that the IO Base Device user       */
+  /* program can initialize the  incoming data (from the perspective of the IO controller) */
+  /* for the functional submodules and set the local status to "GOOD". For all             */
+  /* non-functional submodules, the local status should be set to "BAD"                    */
+  /* We have already initialized the local buffer in "PNIO_cbf_ar_info_ind" callback       */
+  
+  dwErrorCode = PNIO_initiate_data_write(g_dwHandle);
+  if(dwErrorCode != PNIO_OK)
+    printf("Error: PNIO_init_data_write. 0x%x\n", dwErrorCode);
+    
+  /* We also have to call "PNIO_initiate_data_read" so that the IO Base Device user program  */
+  /* can set the local status for functional submodules of all the outgoing data             */
+  /* (from the perspective of the IO controller) to GOOD. For all non-functional submodules, */
+  /* the local status has to be set to "BAD".                                                */
+  
+  dwErrorCode = PNIO_initiate_data_read(g_dwHandle);
+   if(dwErrorCode != PNIO_OK)
+    printf("Error: PNIO_init_data_read. 0x%x\n", dwErrorCode);
+   
+  /* Here we need to call PNIO_set_appl_state_ready so that                                  */
+  /* the IO Base Device user program registers a list of the non-functional submodules       */
+  /* and the extent of readiness to get into a data exchange at the IO controller            */ 
+  memset(&readyListType, 0, sizeof(readyListType));
+  readyListType.ap_list.Flink = NULL;
+  readyListType.ap_list.Blink = NULL;
+  
+  dwErrorCode = PNIO_set_appl_state_ready(
+      g_dwHandle,
+      g_arNumber,
+      g_SessionKey,
+      &readyListType);
+
+  if(dwErrorCode == PNIO_OK)
+        printf("\nDevice is ready...\n\n");
+    else
+        printf("\nError in setting appl state ready\n");
+}
+
+/*********************************************************** */
+/*                                                           */
+/*Function:        do_after_prm_end_ind_cbf()                */
+/*                                                           */
+//************************************************************/
+/* This function is called after the PNIO_cbf_ar_indata_ind  */
+/* callback has been called, it calls                        */
+/* PNIO_initiate_data_write and PNIO_initiate_data_read()    */
+/*********************************************************** */
+void do_after_indata_ind_cbf(void)
+{
+  PNIO_UINT32 dwErrorCode = PNIO_OK;
+  /* Here we need to call "PNIO_initiate_data_write" so that the IO Base Device user       */
+  /* program can initialize the  incoming data (from the perspective of the IO controller) */
+  /* for the functional submodules and set the local status to "GOOD". For all             */
+  /* non-functional submodules, the local status should be set to "BAD"                    */
+  /* We have already initialized the local buffer in "PNIO_cbf_ar_info_ind" callback        */
+  dwErrorCode = PNIO_initiate_data_write(g_dwHandle);
+    if(dwErrorCode != PNIO_OK) {
+        printf("## Error - PNIO_init_data_write. 0x%x\n", dwErrorCode);
+    }
+  /* We also have to call "PNIO_initiate_data_read" so that the IO Base Device user program   */
+  /* can set the local status for functional submodules of all the outgoing data              */
+  /* (from the perspective of the IO controller) to GOOD. For all non-functional submodules,  */
+  /* the local status has to be set to "BAD".                                                 */
+  
+  dwErrorCode = PNIO_initiate_data_read(g_dwHandle);
+    if(dwErrorCode != PNIO_OK) {
+        printf("## Error - PNIO_init_data_read. 0x%x\n", dwErrorCode);
+    }
+}
 
 
 /*********************************************************** */
@@ -715,7 +799,10 @@ void AddApi(void)
 	      );
   
       if(dwErrorCode != PNIO_OK)
+      {
 	printf("Error 0x%x\n", (int) dwErrorCode);
+	exit(1);	
+      }
       else
 	printf("SUCCESS\n");
     }
@@ -754,7 +841,10 @@ void RemoveApi(void)
     {
       dwErrorCode = PNIO_api_remove(g_dwHandle, api);
       if(dwErrorCode != PNIO_OK)
+      {
         printf("Error\n");
+	exit(1);
+      }
       else     
         printf("SUCCESS");
     }
@@ -967,7 +1057,7 @@ void AddModSubMod(void)
 /* The function first removes the submodules and then the    */
 /* modules from PNIO device in reverse order                 */
 /*************************************************************/
-void RemodeModSubMod(void)
+void RemoveModSubMod(void)
 {
   int i;
   PNIO_DEV_ADDR addr;         //location module/submodule
@@ -1047,7 +1137,9 @@ void RemodeModSubMod(void)
 
 int main(void)
 {
-   
+  PNIO_UINT32 ErrorCode = PNIO_OK; 
+  int callback_counter = 0;
+  
   printf("Application does following: \n");
   printf("Initialize PNIO device\n");
   printf("Read/Write IO data\n");
@@ -1057,14 +1149,82 @@ int main(void)
   //Initialize
   g_dwHandle = Initialize(g_dwCpId);
   
-  //Add profile
+  //Add API profile
   AddApi();
   
   //Add modules and submodules to the device
   AddModSubMod();
   
+  //----------------------------------------------------
+  //Start the CP
+  //----------------------------------------------------
+  printf("Starting PNIO device...\n");
+  ErrorCode = PNIO_device_start(g_dwHandle);
+  if(ErrorCode != PNIO_OK)
+  {   printf("Error: 0x%x\n", ErrorCode);
+     goto CLEAN_UP;
+  }
+  else
+  {
+    printf("SUCCESS\n");
+    ErrorCode = PNIO_set_dev_state(g_dwHandle, PNIO_DEVSTAT_OK);
+    if(ErrorCode != PNIO_OK)
+    {
+      printf("Error: 0x%x\n", ErrorCode);
+      goto CLEAN_UP;
+    }
+  }
+
+  printf("\nWaiting for callbacks...\n");
+  
+  //Wait for necessary callbacks
+  while(callback_counter != MAX_COUNT)
+  {
+    //PNIO_cbf_prm_end_ind() callback already called?
+    if(PRM_END_IND_flag == 1)
+    {
+      do_after_prm_end_ind_cbf();
+      break;
+    }
+    usleep(100000);
+    callback_counter++;
+  }
+  
+  if(callback_counter == MAX_COUNT) 
+    goto CLEAN_UP;
+  
+  callback_counter = 0;  
+  while(callback_counter != MAX_COUNT)
+  {
+    //PNIO_cbf_indata_ind() callback already called?
+    if(INDATA_IND_flag == 1)
+    {
+      do_after_indata_ind_cbf();
+      break;
+    }
+    
+    usleep(100000);
+    callback_counter++;
+    
+    if(callback_counter == MAX_COUNT)
+      goto CLEAN_UP;
+    
+    printf("All necessary callbacks called...\n");
+    
+  }
+  
+CLEAN_UP:
+  printf("\nStopping PNIO device...\n");
+  
+  ErrorCode = PNIO_device_stop(g_dwHandle);
+  if(ErrorCode != PNIO_OK)
+  {
+    printf("Error in stopping the device. Error# 0x%x\n", ErrorCode);
+    exit(1);
+  }
+    
   //Remove the modules and submodules
-  RemodeModSubMod();
+  RemoveModSubMod();
   
   //Remove the API
   RemoveApi();
