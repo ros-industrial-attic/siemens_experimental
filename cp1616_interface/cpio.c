@@ -26,6 +26,9 @@
 #include "pniousrx.h"
 #include "pnioerrx.h"
 
+#define NUM_INPUT_MODULES 	4
+#define NUM_OUTPUT_MODULES  	4
+
 /************************************************/
 /*Global data for CP                            */
 /************************************************/
@@ -34,47 +37,33 @@ PNIO_UINT32 g_dwCpId   = 1;
 PNIO_UINT32 g_dwHandle = 0;
 int semModChange       = 0;
 volatile PNIO_MODE_TYPE g_currentMode = PNIO_MODE_OFFLINE;
-
-//INPUT DATA
-const PNIO_UINT32 g_deviceInputCount = 3;	//number of input modules
 volatile PNIO_IOXS g_localState = PNIO_S_GOOD;
-volatile PNIO_IOXS g_deviceInputState[g_deviceInputCount]={PNIO_S_BAD, PNIO_S_BAD, PNIO_S_BAD};
 
-PNIO_ADDR g_deviceInputAddress[g_deviceInputCount] = 
-{
-  { PNIO_ADDR_LOG, PNIO_IO_IN, {0}},   //output address of first output module 
-  { PNIO_ADDR_LOG, PNIO_IO_IN, {1}},   //output address of second output module
-  { PNIO_ADDR_LOG, PNIO_IO_IN, {2}}    //output address of third output module
-};
 
-PNIO_UINT32 g_deviceInputLength[g_deviceInputCount] = 
-{
-  1, //length in bytes of first input module
-  1, //length in bytes of second input module
-  1  //length in bytes of third input module
-};
+//INPUT Module memory allocation 
+PNIO_UINT32 g_deviceInputCount = 0;	
+PNIO_UINT32 *g_deviceInputLength = (PNIO_UINT32 *) malloc(NUM_INPUT_MODULES * sizeof(PNIO_UINT32));                          
+PNIO_IOXS volatile * volatile g_deviceInputState = (PNIO_IOXS volatile *) malloc (NUM_INPUT_MODULES * sizeof(PNIO_IOXS));
+PNIO_ADDR *g_deviceInputAddress = (PNIO_ADDR *) malloc(NUM_INPUT_MODULES * sizeof(PNIO_ADDR));
 
-PNIO_UINT8 g_deviceInputData[g_deviceInputCount];
+//OUTPUT Module - memory allocation 
+PNIO_UINT32 g_deviceOutputCount = 0;
+PNIO_UINT32 *g_deviceOutputLength = (PNIO_UINT32 *) malloc(NUM_OUTPUT_MODULES * sizeof(PNIO_UINT32));          
+PNIO_IOXS volatile * volatile g_deviceOutputState = (PNIO_IOXS volatile *) malloc (NUM_OUTPUT_MODULES * sizeof(PNIO_IOXS));
+PNIO_ADDR *g_deviceOutputAddress = (PNIO_ADDR *) malloc(NUM_OUTPUT_MODULES * sizeof(PNIO_ADDR));
 
-//OUTPUT DATA
-const PNIO_UINT32 g_deviceOutputCount = 3;
-volatile PNIO_IOXS g_deviceOutputState[g_deviceOutputCount] = {PNIO_S_BAD, PNIO_S_BAD, PNIO_S_BAD};
+PNIO_UINT32 countData(PNIO_UINT32 *p, PNIO_UINT32 m){return(m)?p[--m]+countData(p,m):0;};	
 
-PNIO_ADDR g_deviceOutputAddress[g_deviceOutputCount] = 
-{
-  {PNIO_ADDR_LOG, PNIO_IO_OUT, {0}},   //output address of first output module
-  {PNIO_ADDR_LOG, PNIO_IO_OUT, {1}},   //output address of second output module
-  {PNIO_ADDR_LOG, PNIO_IO_OUT, {2}}    //output address of third output module
-};
+//INPUT data variables
+PNIO_UINT32 g_InputDataCount;
+PNIO_UINT8 *g_deviceInputData;
+PNIO_UINT8 **g_p_InputData;
 
-PNIO_UINT32 g_deviceOutputLength[g_deviceOutputCount] = 
-{
-  1,	//length in bytes of first output module
-  1,   //length in bytes of second output module
-  1    //length in bytes of third output module
-};
+//OUTPUT data variables
+PNIO_UINT32 g_OutputDataCount;
+PNIO_UINT8 *g_deviceOutputData;
+PNIO_UINT8 **g_p_OutputData;
 
-PNIO_UINT8 g_deviceOutputData[g_deviceOutputCount];
 
 /************************************************/
 /*Callbacks declarations                        */
@@ -202,6 +191,123 @@ void ChangeAndWaitForPnioMode(PNIO_UINT32 dwHandle, PNIO_MODE_TYPE mode)
 
 /*********************************************************** */
 /*                                                           */
+/*Function:            AddIOModule()                         */
+/*                                                           */
+//************************************************************/
+/* The function initialize input and output module variables */
+/*************************************************************/
+void AddIOModule(PNIO_UINT32 input_size, PNIO_UINT32 input_address, PNIO_UINT32 output_size, PNIO_UINT32 output_address)
+{
+  printf("Adding IO module: ");
+  
+  if(g_currentMode == PNIO_MODE_OPERATE)
+  {
+    printf("ERROR : not able to add IO module in OPERATE state\n");
+  }
+  if(g_deviceInputCount >= NUM_INPUT_MODULES)
+  {
+    printf("ERROR: Not able to add another module. Max count reached");
+  }
+  
+  else
+  {         
+    g_deviceInputLength[g_deviceInputCount] = input_size;                    //number of telegram bytes
+    g_deviceInputState[g_deviceInputCount] = PNIO_S_BAD;                     //initial Input state
+    g_deviceInputAddress[g_deviceInputCount].AddrType = PNIO_ADDR_LOG;       //Address type
+    g_deviceInputAddress[g_deviceInputCount].IODataType = PNIO_IO_IN;        //Data type
+    g_deviceInputAddress[g_deviceInputCount].u.Addr = input_address;         //Module address
+        
+    g_deviceOutputLength[g_deviceOutputCount] = output_size;                 //number of telegram bytes
+    g_deviceOutputState[g_deviceOutputCount] = PNIO_S_BAD;                   //initial Output state
+    g_deviceOutputAddress[g_deviceOutputCount].AddrType = PNIO_ADDR_LOG;     //Address type
+    g_deviceOutputAddress[g_deviceOutputCount].IODataType = PNIO_IO_OUT;     //Data type
+    g_deviceOutputAddress[g_deviceOutputCount].u.Addr  = output_address;     //Module address
+        
+    printf("IN:  %d  %d \n", g_deviceInputLength[g_deviceInputCount], g_deviceInputAddress[g_deviceInputCount].u.Addr);
+    printf("\t\t  OUT: %d  %d \n", g_deviceOutputLength[g_deviceOutputCount], g_deviceOutputAddress[g_deviceOutputCount].u.Addr);
+    
+    g_deviceInputCount++;		//increment deviceInputCounter
+    g_deviceOutputCount++;		//increment deviceOutputCounter
+    }
+}
+
+/*********************************************************** */
+/*                                                           */
+/*Function:            RemoveIOModules()                     */
+/*                                                           */
+//************************************************************/
+/* The function free allocated memory for all modules and    */
+/* reset counters                                            */
+/*************************************************************/
+void RemoveIOModules()
+{
+  //free allocated memory
+  free(g_deviceInputLength);
+  free((PNIO_IOXS *)g_deviceInputState);
+  free(g_deviceInputAddress);
+  
+  free(g_deviceOutputLength);
+  free((PNIO_IOXS *)g_deviceOutputState);
+  free(g_deviceOutputAddress);
+  
+  //reset counters
+  g_deviceInputCount = 0;
+  g_deviceOutputCount = 0;
+}
+
+/*********************************************************** */
+/*                                                           */
+/*Function:            AddModuleDataStructure()              */
+/*                                                           */
+//************************************************************/
+/* The function initialize input and output data variables   */
+/*************************************************************/
+void AddModuleDataStructure(void)
+{
+  //Input data memory allocation
+  g_InputDataCount = countData(g_deviceInputLength, g_deviceInputCount); 
+  g_deviceInputData = (PNIO_UINT8 *) calloc(g_InputDataCount, sizeof(PNIO_UINT8));
+  g_p_InputData = (PNIO_UINT8 **) malloc(g_deviceInputCount*sizeof(PNIO_UINT8*));
+ 
+  unsigned int p1, p2;
+
+  for(p1 = 0, p2 = 0 ; p2 < g_deviceInputCount;)
+  { 
+    g_p_InputData[p2] = &(g_deviceInputData[p1]);
+    p1 += g_deviceInputLength[p2++]; 
+  }
+
+  //Output data memory allocation
+  g_OutputDataCount = countData(g_deviceOutputLength, g_deviceOutputCount); 
+  g_deviceOutputData = (PNIO_UINT8 *) calloc(g_OutputDataCount, sizeof(PNIO_UINT8));
+  g_p_OutputData = (PNIO_UINT8 **) malloc(g_deviceOutputCount*sizeof(PNIO_UINT8*));
+
+  for(p1 = 0, p2 = 0 ; p2 < g_deviceOutputCount;)
+  { 
+    g_p_OutputData[p2] = &(g_deviceOutputData[p1]);
+    p1 += g_deviceOutputLength[p2++]; 
+  }
+}
+
+/*********************************************************** */
+/*                                                           */
+/*Function:         RemoveModuleDataStructure()              */
+/*                                                           */
+//************************************************************/
+/* The function removes input and output data variables      */
+/*************************************************************/
+void RemoveModuleDataStructure(void)
+{
+  free(g_p_InputData);
+  free(g_p_OutputData);
+  free(g_deviceInputData);
+  free(g_deviceOutputData);
+}
+
+
+
+/*********************************************************** */
+/*                                                           */
 /*Function:      UpdateCyclicOutputData()                    */
 /*                                                           */
 //************************************************************/
@@ -211,7 +317,7 @@ void ChangeAndWaitForPnioMode(PNIO_UINT32 dwHandle, PNIO_MODE_TYPE mode)
 
 void UpdateCyclicOutputData(PNIO_UINT32 dwHandle)
 {
-  PNIO_UINT32 dwErrorCode;
+  PNIO_UINT32 dwErrorCode = PNIO_OK;
   for(unsigned int i=0;i<g_deviceOutputCount;i++)
   {
     dwErrorCode=PNIO_data_write(
@@ -243,7 +349,7 @@ void UpdateCyclicOutputData(PNIO_UINT32 dwHandle)
 
 void UpdateCyclicInputData(PNIO_UINT32 dwHandle)
 {
-  PNIO_UINT32 dwErrorCode;
+  PNIO_UINT32 dwErrorCode = PNIO_OK;
   PNIO_UINT32 dwBytesReaded;
   for(unsigned int i=0;i<g_deviceInputCount;i++) 
   {
@@ -443,7 +549,26 @@ int main(int argc, char *argv[])
   printf("5. Uninitialize CP\n");
   printf("---------------------------------\n\n");
       
-  //Initialize
+  AddIOModule(16,512,16,512);
+  AddIOModule(16,528,16,528);
+ 
+  
+ /* AddModuleDataStructure();
+  printf("g_deviceInputCount: %d\n",g_deviceInputCount);
+  printf("g_InputDataCount: %d\n", g_InputDataCount);
+  printf("g_deviceInputData: %d\n", *g_deviceInputData);
+   
+  printf("g_deviceOutputCount: %d\n",g_deviceOutputCount);
+  printf("g_OutputDataCount: %d\n", g_OutputDataCount);
+  printf("g_deviceOutputData: %d\n", *g_deviceOutputData);
+    
+  
+  g_p_OutputData[0][0] = 10;	g_p_OutputData[0][1] = 20;
+  g_p_OutputData[0][2] = 10;	g_p_OutputData[0][3] = 20;
+  g_p_OutputData[0][0] = 10;	g_p_OutputData[0][0] = 20;
+  
+  
+ /* //Initialize
   bDeviceReady = 0;
   g_dwHandle = Initialize(g_dwCpId);
     
@@ -474,6 +599,7 @@ int main(int argc, char *argv[])
     
   //UnInitialize
   UnInitialize(g_dwHandle);
-    
+*/
+ 
   return(EXIT_SUCCESS);
 }
