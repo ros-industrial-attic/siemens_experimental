@@ -52,12 +52,12 @@ PNIO_UINT32 *g_deviceOutputLength = (PNIO_UINT32 *) malloc(NUM_OUTPUT_MODULES * 
 PNIO_IOXS volatile * volatile g_deviceOutputState = (PNIO_IOXS volatile *) malloc (NUM_OUTPUT_MODULES * sizeof(PNIO_IOXS));
 PNIO_ADDR *g_deviceOutputAddress = (PNIO_ADDR *) malloc(NUM_OUTPUT_MODULES * sizeof(PNIO_ADDR));
 
-PNIO_UINT32 countData(PNIO_UINT32 *p, PNIO_UINT32 m){return(m)?p[--m]+countData(p,m):0;};	
+//PNIO_UINT32 countData(PNIO_UINT32 *p, PNIO_UINT32 m){return(m)?p[--m]+countData(p,m):0;};	
 
 //INPUT data variables
 PNIO_UINT32 g_numOfInputData;
 PNIO_UINT8 *g_deviceInputData;
-PNIO_UINT8 **g_arrayOfInputData
+PNIO_UINT8 **g_arrayOfInputData;
 
 //OUTPUT data variables
 PNIO_UINT32 g_numOfOutputData;
@@ -149,6 +149,30 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
 
 /*********************************************************** */
 /*                                                           */
+/*Function:        UnInitialize()                            */
+/*                                                           */
+//************************************************************/
+/* The function uninitialize PNIO controller                 */
+/*************************************************************/
+
+void UnInitialize(PNIO_UINT32 dwHandle)
+{
+  printf("Close PNIO_controller: ");
+  PNIO_UINT32 dwErrorCode = PNIO_OK;
+  
+  dwErrorCode = PNIO_close(dwHandle);
+  
+  if(dwErrorCode != PNIO_OK)
+  {
+    printf("Error 0x%x\n", (int) dwErrorCode);
+    exit(1);
+  }
+  else
+    printf("SUCCESS\n");
+}
+
+/*********************************************************** */
+/*                                                           */
 /*Function:      ChangeAndWaitForPnioMode()                  */
 /*                                                           */
 //************************************************************/
@@ -225,6 +249,9 @@ void AddIOModule(PNIO_UINT32 input_size, PNIO_UINT32 input_address, PNIO_UINT32 
     printf("IN:  %d  %d \n", g_deviceInputLength[g_deviceInputCount], g_deviceInputAddress[g_deviceInputCount].u.Addr);
     printf("\t\t  OUT: %d  %d \n", g_deviceOutputLength[g_deviceOutputCount], g_deviceOutputAddress[g_deviceOutputCount].u.Addr);
     
+    g_numOfInputData  += input_size;	//count total input size for AddIOModuleDataStructure() 
+    g_numOfOutputData += output_size;  //count total output size for AddIOModuleDataStructure()
+    
     g_deviceInputCount++;		//increment deviceInputCounter
     g_deviceOutputCount++;		//increment deviceOutputCounter
     }
@@ -246,12 +273,15 @@ void RemoveIOModules()
   free(g_deviceInputAddress);
   
   free(g_deviceOutputLength);
-  free((PNIO_IOXS *)g_deviceOutputState);
+  free((PNIO_IOXS *)g_deviceOutputState);    
   free(g_deviceOutputAddress);
   
   //reset counters
   g_deviceInputCount = 0;
   g_deviceOutputCount = 0;
+
+  
+  
 }
 
 /*********************************************************** */
@@ -266,7 +296,6 @@ void RemoveIOModules()
 void AddIOModuleDataStructure(void)
 {
   //Memory allocation for 2D array of input data 
-  g_numOfInputData = countData(g_deviceInputLength, g_numOfInputData); 
   g_deviceInputData = (PNIO_UINT8 *) calloc(g_numOfInputData, sizeof(PNIO_UINT8));
   g_arrayOfInputData = (PNIO_UINT8 **) malloc(g_numOfInputData*sizeof(PNIO_UINT8));
    
@@ -279,7 +308,6 @@ void AddIOModuleDataStructure(void)
   }
 
   //Memory allocation for 2D array of output data 
-  g_numOfOutputData = countData(g_deviceOutputLength, g_numOfOutputData); 
   g_deviceOutputData = (PNIO_UINT8 *) calloc(g_numOfOutputData, sizeof(PNIO_UINT8));
   g_arrayOfOutputData = (PNIO_UINT8 **) malloc(g_numOfOutputData*sizeof(PNIO_UINT8));
   
@@ -299,10 +327,11 @@ void AddIOModuleDataStructure(void)
 /*************************************************************/
 void RemoveModuleDataStructure(void)
 {
-  free(g_arrayOfInputData);
-  free(g_arrayOfOutputData);
   free(g_deviceInputData);
   free(g_deviceOutputData);
+  free(g_arrayOfInputData);
+  free(g_arrayOfOutputData);
+
 }
 
 /*********************************************************** */
@@ -370,27 +399,19 @@ void UpdateCyclicInputData(PNIO_UINT32 dwHandle)
 
 /*********************************************************** */
 /*                                                           */
-/*Function:        UnInitialize()                            */
+/*Function:              PrintData()                         */
 /*                                                           */
 //************************************************************/
-/* The function uninitialize PNIO controller                 */
+/* The function prints DataStructure to console               */
 /*************************************************************/
-
-void UnInitialize(PNIO_UINT32 dwHandle)
+void PrintData(void)
 {
-  printf("Close PNIO_controller: ");
-  PNIO_UINT32 dwErrorCode = PNIO_OK;
   
-  dwErrorCode = PNIO_close(dwHandle);
-  
-  if(dwErrorCode != PNIO_OK)
-  {
-    printf("Error 0x%x\n", (int) dwErrorCode);
-    exit(1);
-  }
-  else
-    printf("SUCCESS\n");
 }
+
+
+
+
 
 /*********************************************************** */
 /*                                                           */
@@ -547,27 +568,44 @@ int main(int argc, char *argv[])
   printf("---------------------------------\n\n");
       
   AddIOModule(16,512,16,512);
-  AddIOModule(16,528,16,528);
+  AddIOModule(8,528,8,528);
  
   AddIOModuleDataStructure();
-  
-  
- 
-  printf("g_deviceInputCount: %d\n",g_deviceInputCount);
-  printf("g_InputDataCount: %d\n", g_InputDataCount);
-  printf("g_deviceInputData: %d\n", *g_deviceInputData);
-   
-  printf("g_deviceOutputCount: %d\n",g_deviceOutputCount);
-  printf("g_OutputDataCount: %d\n", g_OutputDataCount);
-  printf("g_deviceOutputData: %d\n", *g_deviceOutputData);
     
   
-  g_p_OutputData[0][0] = 10;	g_p_OutputData[0][1] = 20;
-  g_p_OutputData[0][2] = 10;	g_p_OutputData[0][3] = 20;
-  g_p_OutputData[0][0] = 10;	g_p_OutputData[0][0] = 20;
+  g_arrayOfInputData[0][0]  = 0;	g_arrayOfInputData[0][1]  = 1;
+  g_arrayOfInputData[0][2]  = 2;	g_arrayOfInputData[0][3]  = 3;
+  g_arrayOfInputData[0][4]  = 4;	g_arrayOfInputData[0][5]  = 5;
+  g_arrayOfInputData[0][6]  = 6;	g_arrayOfInputData[0][7]  = 7;
+  g_arrayOfInputData[0][8]  = 8;	g_arrayOfInputData[0][9]  = 9;
+  g_arrayOfInputData[0][10] = 10;	g_arrayOfInputData[0][11] = 11; 
+  g_arrayOfInputData[0][12] = 12;	g_arrayOfInputData[0][13] = 13;
+  g_arrayOfInputData[0][14] = 14;	g_arrayOfInputData[0][15] = 15;
+   
+  g_arrayOfInputData[1][0]  = 16;	g_arrayOfInputData[1][1]  = 17;
+  g_arrayOfInputData[1][2]  = 18;	g_arrayOfInputData[1][3]  = 19;
+  g_arrayOfInputData[1][4]  = 20;	g_arrayOfInputData[1][5]  = 21;
+  g_arrayOfInputData[1][6]  = 22;	g_arrayOfInputData[1][7]  = 23;
   
+  g_arrayOfOutputData[0][0]  = 0;	g_arrayOfOutputData[0][1]  = 1;
+  g_arrayOfOutputData[0][2]  = 2;	g_arrayOfOutputData[0][3]  = 3;
+  g_arrayOfOutputData[0][4]  = 4;	g_arrayOfOutputData[0][5]  = 5;
+  g_arrayOfOutputData[0][6]  = 6;	g_arrayOfOutputData[0][7]  = 7;
+  g_arrayOfOutputData[0][8]  = 8;	g_arrayOfOutputData[0][9]  = 9;
+  g_arrayOfOutputData[0][10] = 10;	g_arrayOfOutputData[0][11] = 11; 
+  g_arrayOfOutputData[0][12] = 12;	g_arrayOfOutputData[0][13] = 13;
+  g_arrayOfOutputData[0][14] = 14;	g_arrayOfOutputData[0][15] = 15;
+   
+  g_arrayOfOutputData[1][0]  = 16;	g_arrayOfOutputData[1][1]  = 17;
+  g_arrayOfOutputData[1][2]  = 18;	g_arrayOfOutputData[1][3]  = 19;
+  g_arrayOfOutputData[1][4]  = 20;	g_arrayOfOutputData[1][5]  = 21;
+  g_arrayOfOutputData[1][6]  = 22;	g_arrayOfOutputData[1][7]  = 23;
+ 
+   
+  RemoveIOModules();
+  RemoveModuleDataStructure();
   
- /* //Initialize
+/*  //Initialize
   bDeviceReady = 0;
   g_dwHandle = Initialize(g_dwCpId);
     
