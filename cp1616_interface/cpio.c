@@ -86,8 +86,8 @@ void callback_for_alarm_indication(PNIO_CBE_PRM *pCbfPrm);
 
 PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
 {
-  PNIO_UINT32 dwHandle = 0;   //0 is invalid handle
-  PNIO_UINT32 dwErrorCode = PNIO_OK;
+  PNIO_UINT32 dwHandle = 0;               //0 is invalid handle
+  PNIO_UINT32 dwErrorCode = PNIO_OK;      
    
   printf("Open PNIO_controller: ");
   
@@ -256,8 +256,8 @@ void AddIOModule(PNIO_UINT32 input_size, PNIO_UINT32 input_address, PNIO_UINT32 
 	   g_deviceOutputAddress[g_deviceOutputCount].u.Addr, 
 	   g_deviceOutputAddress[g_deviceOutputCount].u.Addr + g_deviceOutputLength[g_deviceOutputCount] - 1);
     
-    g_numOfInputData  += input_size;	//count total input size for AddIOModuleDataStructure() 
-    g_numOfOutputData += output_size;  //count total output size for AddIOModuleDataStructure()
+    g_numOfInputData  += input_size;	//total input size for AddIOModuleDataStructure() 
+    g_numOfOutputData += output_size;  //total output size for AddIOModuleDataStructure()
     
     g_deviceInputCount++;		//increment deviceInputCounter
     g_deviceOutputCount++;		//increment deviceOutputCounter
@@ -286,8 +286,7 @@ void RemoveIOModules()
   //reset counters
   g_deviceInputCount = 0;
   g_deviceOutputCount = 0;
-
-  
+ 
 }
 
 /*********************************************************** */
@@ -656,7 +655,7 @@ int main(int argc, char *argv[])
   
   sleep(1);
   
-  //Increment g_arrayOfOutputData[0][0] and update output data
+  //Increment g_arrayOfOutputData[0][0] and update 
   for(i = 0; i < 100; i++)
   {
     g_arrayOfOutputData[0][0]++;
