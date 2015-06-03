@@ -35,7 +35,9 @@
 /* Values for PNIO_device_open                     */
 /***************************************************/
 
-#define NUM_OF_SLOTS 9
+#define NUMOF_SLOTS 9			 /*slot 0...8 +1*/ 
+#define NUMOF_SUBSLOTS          2      /* Every slot has 1 subslot */
+#define NUMOF_BYTES_PER_SUBSLOT 256    /* Maximum data length as configured in the sample */
 #define VENDOR_ID    0x002a
 #define DEVICE_ID    0x0003
 #define INSTANCE_ID  0x0001
@@ -120,6 +122,19 @@ static int AR_INFO_IND_flag = 0;                      // Callback: Application r
 static int PRM_END_IND_flag = 0;                      // Callback: End of Parametrization */
 static int INDATA_IND_flag = 0;                       // Callback: First data transmission from IO-Controller*/
 
+/**** Output Data  (IO Controller ==> IO Device) */
+PNIO_UINT8     OutData        [NUMOF_SLOTS][NUMOF_SUBSLOTS][NUMOF_BYTES_PER_SUBSLOT];
+PNIO_UINT32    OutDatLen      [NUMOF_SLOTS][NUMOF_SUBSLOTS];
+PNIO_IOXS      OutDatIocs     [NUMOF_SLOTS][NUMOF_SUBSLOTS];
+PNIO_UINT8     OutDatIops     [NUMOF_SLOTS][NUMOF_SUBSLOTS];
+
+/**** Input Data  (IO Device ==> IO Controller) */
+PNIO_UINT8     InData         [NUMOF_SLOTS][NUMOF_SUBSLOTS][NUMOF_BYTES_PER_SUBSLOT];
+PNIO_UINT32    InDatLen       [NUMOF_SLOTS][NUMOF_SUBSLOTS];
+PNIO_IOXS      InDatIops      [NUMOF_SLOTS][NUMOF_SUBSLOTS];
+PNIO_UINT8     InDatIocs      [NUMOF_SLOTS][NUMOF_SUBSLOTS];
+
+
 /*********************************************************** */
 /*                                                           */
 /*                  CALLBACKS                                */
@@ -144,13 +159,46 @@ PNIO_IOXS PNIO_cbf_data_write(
   /*in*/  PNIO_IOXS        Iocs)      //remote IO controller consumer status
 
 {
+  unsigned int i;
+  
   PNIO_UINT32 slot_num    = pAddr->u.Geo.Slot;
   PNIO_UINT32 subslot_num = pAddr->u.Geo.Subslot;
   
   printf("PNIO_cbf_data_write(..., len=(..., len=%u, Iocs=%u) for devHandle 0x%x, slot %u, subslot %u\n",
         BufLen, Iocs, DevHndl, slot_num, subslot_num);
   
-  return PNIO_S_GOOD;   //return local provider status
+  InDatLen  [slot_num][subslot_num] = BufLen;		//save data length (only for debugging)
+  InDatIocs [slot_num][subslot_num] = Iocs;		//consumer status (of remote IO Controller)
+  
+  if(BufLen == 0)
+  {
+    printf("BuLen = 0, nothing to write to...\n");
+    InDatIops [slot_num][subslot_num] = PNIO_S_GOOD;
+  }
+  else if (BufLen <= (PNIO_UINT32)NUMOF_BYTES_PER_SUBSLOT)
+  {
+    memcpy(pBuffer, &InData[slot_num][subslot_num][0], BufLen);	//copy the application data to the stack
+    InDatIops[slot_num][subslot_num] = PNIO_S_GOOD;			//assume everything is ok
+    
+    printf("IO Data buffer: \n");
+    for(i = 0; i < BufLen; i++) 
+    {
+      if(i%16 == 0 && i!=0)
+	printf("\n");
+
+      printf(" 0x%02x", pBuffer[i]);
+    }
+    printf("\n");
+  }
+  else
+  {
+    printf("!!! PNIO_cbf_data_write: Buflen=%lu > allowed size (%u)!!! Abort writing..\n",
+            (unsigned long)BufLen, NUMOF_BYTES_PER_SUBSLOT);
+    
+    InDatIops [slot_num][subslot_num] = PNIO_S_BAD; /* set local status to bad */
+  }
+  
+  return (InDatIops[slot_num][subslot_num]);   //return local provider status
   
 }
 
@@ -170,13 +218,199 @@ PNIO_IOXS PNIO_cbf_data_read(
   /*in*/  PNIO_UINT8*     pBuffer,        //Ptr to data buffer to read from
   /*in*/  PNIO_IOXS       Iops)           //IO controller provider status
 {
+  unsigned int i;
+  
   PNIO_UINT32 slot_num     = pAddr->u.Geo.Slot;
   PNIO_UINT32 subslot_num  = pAddr->u.Geo.Subslot;
   
   printf("## PNIO_cbf_data_read(..., len=%u, Iops=%u) for devHandle 0x%x, slot %u, subslot %u\n",
         BufLen, Iops, DevHndl, slot_num, subslot_num);
   
-  return(PNIO_S_GOOD);
+  OutDatLen  [slot_num][subslot_num] = BufLen;		//save data length (only for debugging)
+  OutDatIops [slot_num][subslot_num] = Iops;		//provider status (of remote IO controller)
+  
+  if(BufLen == 0)
+  {
+    printf(" BufLen = 0, nothing to read..\n");
+    OutDatIocs [slot_num][subslot_num] = PNIO_S_GOOD;
+  }
+  else if(BufLen <= (PNIO_UINT32)NUMOF_BYTES_PER_SUBSLOT) 
+  {
+    memcpy (&OutData[slot_num][subslot_num][0], pBuffer, BufLen); /*Copy the data from the stack to the application buffer*/
+    OutDatIocs [slot_num][subslot_num] = PNIO_S_GOOD; /* assume everything is ok */
+    
+    printf(" IO Data buffer:\n");
+    for(i = 0; i < BufLen; i++) 
+    {
+      if(i%16 == 0 && i!=0)
+	printf("\n");
+
+      printf(" 0x%02x", OutData[slot_num][subslot_num][i]);
+    }
+    printf("\n");
+  }
+  else
+  {
+     printf("!!! PNIO_cbf_data_read: Buflen=%lu > allowed size (%u)!!! Abort reading...\n",
+            (unsigned long)BufLen, NUMOF_BYTES_PER_SUBSLOT);
+     OutDatIocs [slot_num][subslot_num] = PNIO_S_BAD; /* set local status to bad */
+  }
+  
+  return(OutDatIocs[slot_num][subslot_num]);		//consumer state (of local IO device)
+}
+
+/*********************************************************** */
+/*                                                           */
+/*Callback:        PNIO_cbf_rec_read()                       */
+/*                                                           */
+//************************************************************/
+/* This callback is called to notify tha a read record       */
+/* request has been recieved from IO Controller. This        */
+/* function has to provide the record data and copy it to the*/
+/* specified buffer address. The maximum pBufLen can not be  */
+/* exceeded! This callback returns the real copied data      */
+/* length and the success state (PNIO_OK)                    */
+/*************************************************************/
+void PNIO_cbf_rec_read  (
+    /*in*/      PNIO_UINT32          DevHndl,         //device handle 
+    /*in*/      PNIO_UINT32          Api,             //api number
+    /*in*/      PNIO_UINT16          ArNumber,        //Application-relation number
+    /*in*/      PNIO_UINT16          Sessi,           //Manual synchronization - The main function calls device-stop functiononKey
+    /*in*/      PNIO_UINT32          SequenceNum,     //Sequence number
+    /*in*/      PNIO_DEV_ADDR      * pAddr,           //geographical address 
+    /*in*/      PNIO_UINT32          RecordIndex,     //record index
+    /*in/out*/  PNIO_UINT32        * pBufLen,         //in: length to read, out: length, read by user 
+    /*out*/     PNIO_UINT8         * pBuffer,         // [out] buffer pointer */
+    /*out*/     PNIO_ERR_STAT      * pPnioState)      // 4 byte PNIOStatus (ErrCode, ErrDecode, ErrCode1, ErrCode2), see IEC61158-6 */
+{
+    PNIO_UINT32 i;
+    PNIO_UINT32 dwErrorCode = PNIO_OK;
+    
+    //fill dummy buffer
+    PNIO_UINT8 ReadRecDummyData[] = {"Test Record"};
+    
+    if(*pBufLen > sizeof(ReadRecDummyData))
+      *pBufLen = sizeof(ReadRecDummyData);
+    
+    printf("\nREAD_RECORD Request, Api=%lu Slot=%lu Subslot=%lu Index=%lu, Length=%lu, Sequence_nr=%lu\n",
+	   (unsigned long)Api, 
+	   (unsigned long)pAddr->u.Geo.Slot,
+	   (unsigned long)pAddr->u.Geo.Subslot,
+	   (unsigned long)RecordIndex,
+	   (unsigned long)*pBufLen, 
+	   (unsigned long)SequenceNum);
+    
+    //copy the data to specified buffer
+    if(*pBufLen < sizeof(ReadRecDummyData))
+      printf("WARNING: Can not transmit all data, buffer too small...\n");
+    
+    memcpy(pBuffer,			//destination pointer for write data
+	   ReadRecDummyData,		//source pointer for write data
+	   *pBufLen);			//length of transmitted data
+    
+    printf("RECORD DATA transmitted:");
+    for(i = 0; i < *pBufLen; i++)
+    {
+      if(i%16 == 0)
+	printf("\n");
+      
+      printf("0x%02lx", (long)pBuffer[i]);
+    }
+    printf("\n");
+    
+    if(dwErrorCode == PNIO_OK)
+    {
+      memset(pPnioState, 0, sizeof(*pPnioState));
+      return;
+    } 
+    else
+    {
+      *pBufLen=0;			
+      pPnioState->ErrCode   = 0xde;	//IODReadRes with ErrorDecode = PNIORW 
+      pPnioState->ErrDecode = 0x80;	//PNIORW
+      pPnioState->ErrCode1  = 9;	//example: Error Class 10 = application, ErrorNr 9 = "feature not supported"
+      pPnioState->ErrCode2  = 0;	//not used in this case	
+      pPnioState->AddValue1 = 0;	//not used in this case
+      pPnioState->AddValue2 = 0;	//not used in this case
+      return;
+  }
+}
+
+/*********************************************************** */
+/*                                                           */
+/*Callback:        PNIO_cbf_rec_write()                      */
+/*                                                           */
+//************************************************************/
+/* This callback is called to notify that a write record     */
+/* request has been recieved from IO controller. The user has*/
+/* to read the record data from the specified source buffer. */
+/* The length of provided data are specified in function     */
+/* parameter *pBufLen. After serving this function, the user */
+/* returns the success state                                 */
+/*************************************************************/
+void PNIO_cbf_rec_write  (   
+    /*in*/      PNIO_UINT32          DevHndl,         //device handle 
+    /*in*/      PNIO_UINT32          Api,             //api number
+    /*in*/      PNIO_UINT16          ArNumber,        //Application-relation number
+    /*in*/      PNIO_UINT16          Sessi,           //Manual synchronization - The main function calls device-stop functiononKey
+    /*in*/      PNIO_UINT32          SequenceNum,     //Sequence number
+    /*in*/      PNIO_DEV_ADDR      * pAddr,           //geographical address 
+    /*in*/      PNIO_UINT32          RecordIndex,     //record index
+    /*in/out*/  PNIO_UINT32        * pBufLen,         //in: length to read, out: length, read by user 
+    /*out*/     PNIO_UINT8         * pBuffer,         // [out] buffer pointer */
+    /*out*/     PNIO_ERR_STAT      * pPnioState)      // 4 byte PNIOStatus (ErrCode, ErrDecode, ErrCode1, ErrCode2), see IEC61158-6 */
+
+{
+    PNIO_UINT8  WriteRecDummyData[50];
+    PNIO_UINT32 i;
+    PNIO_UINT32 dwErrorCode = PNIO_OK;
+    
+    printf("\nWRITE RECORD Request, Api=%lu Slot=%lu Subslot=%lu Index=%lu, Length=%lu, Sequence_nr=%lu\n",
+	(unsigned long)Api, 
+	(unsigned long)pAddr->u.Geo.Slot,
+	(unsigned long)pAddr->u.Geo.Subslot,
+	(unsigned long)RecordIndex, 
+	(unsigned long)*pBufLen, 
+	(unsigned long)SequenceNum);
+    
+    //check data size (accepted_data < provided_data)
+    if(*pBufLen > sizeof(WriteRecDummyData))
+    {
+      *pBufLen = sizeof(WriteRecDummyData);
+      printf("WARNING: Can not write all data, not enough space..\n");
+    }
+    
+    //copy the record data into a buffer for further use
+    memcpy(WriteRecDummyData,		//destination pointer for record data
+           pBuffer,			//source pointer for record data
+	   *pBufLen);			//length of the accepted data
+    
+    printf("RECORD DATA written: ");
+    for(i = 0; i < *pBufLen; i++)
+    {
+      if(i % 16 == 0)
+	printf("\n");
+      
+      printf("0x%02lx", (long)WriteRecDummyData[i]);
+    }
+    printf("\n");
+    
+    if(dwErrorCode == PNIO_OK) 
+    {
+      memset(pPnioState, 0, sizeof(*pPnioState));
+      return;
+    }
+    else  //if an eror occured, it must be specified according to IEC 61158-6
+    {
+      *pBufLen=0;
+      pPnioState->ErrCode   = 0xdf;	//IODWrites with ErrorDecode = PNIORW
+      pPnioState->ErrDecode = 0x80;	//PNIORW
+      pPnioState->ErrCode1  = 9;	//example: Error Class 10 = application, ErrorNr 9 = "feature not supported"
+      pPnioState->ErrCode2  = 0;	//not used in this case
+      pPnioState->AddValue1 = 0;	//not used in this case
+      pPnioState->AddValue2  =0;	//not used in this case
+      return;
+    }
 }
 
 /*********************************************************** */
@@ -421,65 +655,6 @@ void PNIO_cbf_device_stopped(
     /*in*/  PNIO_UINT32 Reserved)   //Reserved for future use
 {
   printf("## PNIO_cbf_device_stopped\n\n");
-}
-
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_rec_read()                       */
-/*                                                           */
-//************************************************************/
-/* This callback is called if the IO Controller wants to     */
-/* read a record                                             */
-/*************************************************************/
-void PNIO_cbf_rec_read  (
-    /*in*/      PNIO_UINT32          DevHndl,         //device handle 
-    /*in*/      PNIO_UINT32          Api,             //api number
-    /*in*/      PNIO_UINT16          ArNumber,        //Application-relation number
-    /*in*/      PNIO_UINT16          Sessi,           //Manual synchronization - The main function calls device-stop functiononKey
-    /*in*/      PNIO_UINT32          SequenceNum,     //Sequence number
-    /*in*/      PNIO_DEV_ADDR      * pAddr,           //geographical address 
-    /*in*/      PNIO_UINT32          RecordIndex,     //record index
-    /*in/out*/  PNIO_UINT32        * pBufLen,         //in: length to read, out: length, read by user 
-    /*out*/     PNIO_UINT8         * pBuffer,         // [out] buffer pointer */
-    /*out*/     PNIO_ERR_STAT      * pPnioState)      // 4 byte PNIOStatus (ErrCode, ErrDecode, ErrCode1, ErrCode2), see IEC61158-6 */
-{
-    *pBufLen=0;
-    pPnioState->ErrCode=0xde;
-    pPnioState->ErrDecode=0x80;
-    pPnioState->ErrCode1=9;
-    pPnioState->ErrCode2=0;
-    pPnioState->AddValue1=0;
-    pPnioState->AddValue2=0;
-}
-
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_rec_write()                      */
-/*                                                           */
-//************************************************************/
-/* This callback is called if the IO Controller wants to     */
-/* write a record                                            */
-/*************************************************************/
-void PNIO_cbf_rec_write  (   
-    /*in*/      PNIO_UINT32          DevHndl,         //device handle 
-    /*in*/      PNIO_UINT32          Api,             //api number
-    /*in*/      PNIO_UINT16          ArNumber,        //Application-relation number
-    /*in*/      PNIO_UINT16          Sessi,           //Manual synchronization - The main function calls device-stop functiononKey
-    /*in*/      PNIO_UINT32          SequenceNum,     //Sequence number
-    /*in*/      PNIO_DEV_ADDR      * pAddr,           //geographical address 
-    /*in*/      PNIO_UINT32          RecordIndex,     //record index
-    /*in/out*/  PNIO_UINT32        * pBufLen,         //in: length to read, out: length, read by user 
-    /*out*/     PNIO_UINT8         * pBuffer,         // [out] buffer pointer */
-    /*out*/     PNIO_ERR_STAT      * pPnioState)      // 4 byte PNIOStatus (ErrCode, ErrDecode, ErrCode1, ErrCode2), see IEC61158-6 */
-
-{
-    *pBufLen=0;
-    pPnioState->ErrCode=0xdf;
-    pPnioState->ErrDecode=0x80;
-    pPnioState->ErrCode1=9;
-    pPnioState->ErrCode2=0;
-    pPnioState->AddValue1=0;
-    pPnioState->AddValue2=0;
 }
 
 
