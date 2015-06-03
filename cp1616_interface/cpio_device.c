@@ -42,7 +42,7 @@
 #define DEVICE_ID    0x0003
 #define INSTANCE_ID  0x0001
 	
-/*  mod    submod        modId   subId   Api */
+/*  slot   subslot      modId   subId   Api */
 #define DEVICE_DATA \
    { 1,      1,         0x001b, 0x010001, 0x00, 0, 0, 0, 0 }, \
    { 2,      1,         0x0020, 0x0001, 0x00, 0, 0, 0, 0 }, \
@@ -53,7 +53,7 @@
    { 7,      1,         0x0033, 0x0001, 0x00, 0, 0, 0, 0 }, \
    { 8,      1,         0x0034, 0x0001, 0x00, 0, 0, 0, 0 }, \
    { 9,      1,         0x0023, 0x0001, 0x00, 0, 0, 0, 0 }
-
+   
 #define DEVICE_DATA_ENTRIES 9 /* The total number of members of DEVICE_DATA structure  */
 #define MAX_COUNT 500	       /* Max counter value for PNIO_cbf_prm_end_ind() callback */
 
@@ -110,7 +110,7 @@ PNIO_UINT32 g_dwCpId   = 1;                           //CP INDEX
 PNIO_UINT32 g_dwHandle = 0;                           //Device Handle				 
 
 PNIO_UINT16 g_SessionKey = 0;                         //Session identifier obtained in PNIO_cbf_ar_info_ind callback
-PNIO_UINT16 g_arNumber = 0;                           //application relation number
+PNIO_UINT16 g_arNumber = 0;                           //Application relation number
 
 static device_data_t device_data[] = { DEVICE_DATA }; //Data Structure
 
@@ -1306,8 +1306,131 @@ void RemoveModSubMod(void)
   }  
 }
 
+/*********************************************************** */
+/*                                                           */
+/*Function:            PrintfIOData()                        */
+/*                                                           */
+//************************************************************/
+/* The function displays the buffer contents on screen       */
+/*************************************************************/
+void PrintIOData()
+{
+  int SlotNum;
+  int SubNum;
+  PNIO_UINT32 IoInd;
+  
+  int i;
+  
+  printf("\nOutput data...\n");
+  //loop corresponding to slots
+  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
+  {
+    SlotNum = g_device_data[i].slot;
+    SubNum  = g_device_data[i].subslot;
+    
+    if(OutDatLen[SlotNum][SubNum] != 0)
+    {
+      printf("\nRead Module: Slot = %u, Subslot = %u, DataLen = %u, Local (consumer) status = %u\n",
+                SlotNum, SubNum, OutDatLen[SlotNum][SubNum], OutDatIocs[SlotNum][SubNum]);
+      
+      for(IoInd = 0; IoInd < OutDatLen[SlotNum][SubNum]; IoInd++)
+      {
+	if(IoInd % 16 == 0 && IoInd != 0)
+	  printf("\n");
+	printf(" 0x%02x", (unsigned int)OutData[SlotNum][SubNum][IoInd]);
+      }
+      printf("\n");
+
+    }
+  }
+  
+  printf("\nInput data..\n");
+  //loop corresponding to the slots
+  for(i = 0; i < DEVICE_DATA_ENTRIES;i++)
+  {
+    SlotNum = g_device_data[i].slot;
+    SubNum  = g_device_data[i].subslot;
+    
+    if(InDatLen[SlotNum][SubNum] != 0)
+    {
+      printf("\nWrite Module: Slot = %u, Subslot = %u, DataLen = %u, Local (provider) status = %u\n",
+                SlotNum, SubNum, InDatLen[SlotNum][SubNum], InDatIops[SlotNum][SubNum]);
+      
+      for(IoInd=0; IoInd < InDatLen[SlotNum][SubNum]; IoInd++) 
+      {
+        if(IoInd % 16 == 0 && IoInd != 0)
+          printf("\n");
+
+	printf(" 0x%02x", (unsigned int)InData[SlotNum][SubNum][IoInd]);
+      }
+      printf("\n");
+    }
+  }
+}
 
 
+/*********************************************************** */
+/*                                                           */
+/*Function:        ConfigureDeviceData()                     */
+/*                                                           */
+//************************************************************/
+/* This function creates a structure out of the config data  */
+/* and fills the unfilled members whereever necesary.        */
+/*************************************************************/
+void ConfigureDeviceData(void)
+{
+  unsigned int i = 0;
+  unsigned int beginNewSlot = 0;
+  unsigned int idx = 0;
+  
+  //copy predeffined structure to g_device_data as it is
+  g_device_data = device_data;
+  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
+  {  
+    printf("Data structure.slot[%d]: %d  %d  %d  %d \n", 
+	   i,
+	   g_device_data[i].slot,
+	   g_device_data[i].subslot,
+	   (unsigned int) g_device_data[i].modId,
+	   (unsigned int) g_device_data[i].subslotId
+	  );
+  }
+  
+  //fill idxTbl with -1
+  memset(idxTbl, -1, DEVICE_DATA_ENTRIES * sizeof(int));
+  idxTbl[idx++] = g_device_data[0].slot;
+  
+  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
+  {  
+    printf("idxTbl[%d]: %d \n", 
+	   i,
+	   idxTbl[i]);
+  }
+  
+  //browsing through the device data structure
+  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
+  {
+    if(g_device_data[i].slot == g_device_data[beginNewSlot].slot)
+    {
+      g_device_data[beginNewSlot].maxSubslots++;
+      g_device_data[i].modId = g_device_data[beginNewSlot].modId;
+    }
+    else
+    {
+      beginNewSlot = i;					//index corresponding to the beginning of the new slots
+      g_device_data[beginNewSlot].maxSubslots = 1;	//every new module/slot has min one sub-slot
+      idxTbl[idx++] = g_device_data[i].slot;		//store the entry of the new slot in idxTbl
+    }
+  }
+  
+  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
+  {  
+    printf("idxTbl[%d]: %d \n", 
+	   i,
+	   idxTbl[i]);
+  }
+  
+}
 
 
 int main(void)
@@ -1320,6 +1443,8 @@ int main(void)
   printf("Read/Write IO data\n");
   printf("Process the data record read/write request of IO controller\n");
   printf("Uninitialize device\n");
+  
+  ConfigureDeviceData();
   
   //Initialize
   g_dwHandle = Initialize(g_dwCpId);
@@ -1410,6 +1535,6 @@ CLEAN_UP:
   //set handle to invalid values
   g_dwHandle = 0; 
   
-  
+
   
 }
