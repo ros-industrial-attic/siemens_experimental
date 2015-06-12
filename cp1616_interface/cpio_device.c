@@ -19,9 +19,9 @@
    
 * *********************************************************************************************/
 
-/***************************************************/
-/* CP1616 annotations                              */
-/***************************************************/
+/******************************************************************************
+ * CP1616 annotations                              
+ *****************************************************************************/
 
 #define ANNOT_NAME       "StarterKit"      /* device type (String 25) */
 #define ANNOT_ORDERID    "6GK1 161-6AA00"  /* Order Id    (String 20) */
@@ -31,35 +31,28 @@
 #define ANNOT_SW_REV_2   6                 /* SwRevision2 (short)     */
 #define ANNOT_SW_REV_3   0                 /* SwRevision3 (short)     */
 
-/***************************************************/
-/* Values for PNIO_device_open                     */
-/***************************************************/
+/******************************************************************************
+ * Values for PNIO_device_open                     
+ ******************************************************************************/
 
-#define NUMOF_SLOTS 9			 /*slot 0...8 +1*/ 
-#define NUMOF_SUBSLOTS          2      /* Every slot has 1 subslot */
-#define NUMOF_BYTES_PER_SUBSLOT 256    /* Maximum data length as configured in the sample */
+#define NUMOF_SLOTS 1			   /* slot 1*/ 
+#define NUMOF_SUBSLOTS          2         /* Every slot has 1 subslot */
+#define NUMOF_BYTES_PER_SUBSLOT 1         /* Maximum data length as configured in the sample */
 #define VENDOR_ID    0x002a
 #define DEVICE_ID    0x0003
 #define INSTANCE_ID  0x0001
 	
-/*  slot   subslot      modId   subId   Api */
+/*  slot   subslot     modId  subId Api */
 #define DEVICE_DATA \
-   { 1,      1,         0x001b, 0x010001, 0x00, 0, 0, 0, 0 }, \
-   { 2,      1,         0x0020, 0x0001, 0x00, 0, 0, 0, 0 }, \
-   { 3,      1,         0x0032, 0x0001, 0x00, 0, 0, 0, 0 }, \
-   { 4,      1,         0x0029, 0x0001, 0x00, 0, 0, 0, 0 }, \
-   { 5,      1,         0x0027, 0x0001, 0x00, 0, 0, 0, 0 }, \
-   { 6,      1,         0x0028, 0x0001, 0x00, 0, 0, 0, 0 }, \
-   { 7,      1,         0x0033, 0x0001, 0x00, 0, 0, 0, 0 }, \
-   { 8,      1,         0x0034, 0x0001, 0x00, 0, 0, 0, 0 }, \
-   { 9,      1,         0x0023, 0x0001, 0x00, 0, 0, 0, 0 }
+   { 1,      1,         0x19, 0x10001, 0x00, 0, 0, 0, 0 }, \
    
-#define DEVICE_DATA_ENTRIES 9 /* The total number of members of DEVICE_DATA structure  */
+   
+#define DEVICE_DATA_ENTRIES 1 /* The total number of members of DEVICE_DATA structure  */
 #define MAX_COUNT 500	       /* Max counter value for PNIO_cbf_prm_end_ind() callback */
 
-/**************************************************/
-/* Known Diagnose alarms for this device          */
-/**************************************************/
+/******************************************************************************
+ * Known Diagnose alarms for this device          
+ *****************************************************************************/
 
 #define CH_ERR_INVAL_LINKUP     0x0100
 #define CH_ERR_INVAL_LINKDOWN   0x0101
@@ -67,9 +60,9 @@
 #define CH_ERR_NO_CPLUG         0x0201
 #define CH_ERR_CPLUG_ERROR      0x0202
 
-/**************************************************/
-/*Headers                                         */
-/**************************************************/
+/******************************************************************************
+ * Headers                                         
+******************************************************************************/
 
 #include <stdio.h>
 #include <unistd.h>
@@ -81,9 +74,9 @@
 #include "pniousrd.h"
 #include "pnioerrx.h"
 
-/************************************************/
-/*Typedefs                                      */
-/************************************************/
+/******************************************************************************
+ * Typedefs                                      
+ *****************************************************************************/
 
 typedef struct device_data_s
 {
@@ -98,29 +91,31 @@ typedef struct device_data_s
     int dir;                      /* for internal use, set this to 0 */
 } device_data_t;
 
-/************************************************/
-/*Function prototypes                           */
-/************************************************/
+/******************************************************************************
+ * Function prototypes                           
+ *****************************************************************************/
 int GetSubmodNum(PNIO_UINT32 mod, PNIO_UINT32 sub);
 
-/************************************************/
-/*Global data for CP                            */
-/************************************************/
-PNIO_UINT32 g_dwCpId   = 1;                           //CP INDEX
-PNIO_UINT32 g_dwHandle = 0;                           //Device Handle				 
 
-PNIO_UINT16 g_SessionKey = 0;                         //Session identifier obtained in PNIO_cbf_ar_info_ind callback
-PNIO_UINT16 g_arNumber = 0;                           //Application relation number
+/******************************************************************************
+ * Global data for CP                            
+ *****************************************************************************/
+PNIO_UINT32 g_dwCpId   = 1;     //CP INDEX
+PNIO_UINT32 g_dwHandle = 0;     //Device Handle				 
+
+PNIO_UINT16 g_SessionKey = 0;   //Session identifier obtained in PNIO_cbf_ar_info_ind callback
+PNIO_UINT16 g_arNumber = 0;     //Application relation number
 
 static device_data_t device_data[] = { DEVICE_DATA }; //Data Structure
 
 device_data_t *g_device_data = NULL;
 static int g_dwArraySize = DEVICE_DATA_ENTRIES;       //Total number of slots as configured in the STEP7 project
-int idxTbl[DEVICE_DATA_ENTRIES];                      //An array of slot ids, sub-slot entries will contain -1 */
+int idxTbl[DEVICE_DATA_ENTRIES];                      //An array of slot ids, sub-slot entries will contain -1 
 
-static int AR_INFO_IND_flag = 0;                      // Callback: Application relation with IO controller is set */
-static int PRM_END_IND_flag = 0;                      // Callback: End of Parametrization */
-static int INDATA_IND_flag = 0;                       // Callback: First data transmission from IO-Controller*/
+static int AR_INFO_IND_flag = 0;   // Callback: Application relation with IO controller is set 
+static int PRM_END_IND_flag = 0;   // Callback: End of Parametrization 
+static int INDATA_IND_flag = 0;    // Callback: First data transmission from IO-Controller
+static int OFFLINE_IND_flag = 0;   // Callback: Device has recieved stop request from user application
 
 /**** Output Data  (IO Controller ==> IO Device) */
 PNIO_UINT8     OutData        [NUMOF_SLOTS][NUMOF_SUBSLOTS][NUMOF_BYTES_PER_SUBSLOT];
@@ -135,22 +130,21 @@ PNIO_IOXS      InDatIops      [NUMOF_SLOTS][NUMOF_SUBSLOTS];
 PNIO_UINT8     InDatIocs      [NUMOF_SLOTS][NUMOF_SUBSLOTS];
 
 
-/*********************************************************** */
-/*                                                           */
-/*                  CALLBACKS                                */
-/*                                                           */
-/*********************************************************** */
+/****************************************************************************** 
+ *                                                           
+ *                             CALLBACKS                                
+ *                                                           
+ ******************************************************************************/ 
 
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_data_write()                     */
-/*                                                           */
-//************************************************************/
-/* Passes the input data from the application to the stack.  */
-/* The application reads the data from the specified input   */
-/* module and handles it to the stack                        */
-/*************************************************************/
+/******************************************************************************* 
+ *                                                           
+ * Callback:               PNIO_cbf_data_write()                     
+ *                                                           
+ *******************************************************************************
+ * Passes the input data from the application to the stack. The application 
+ * reads the data from the specified input module and handles it to the stack                        
+ *******************************************************************************/
 PNIO_IOXS PNIO_cbf_data_write(
   /*in*/  PNIO_UINT32      DevHndl,   //device handle
   /*in*/  PNIO_DEV_ADDR*   pAddr,     //geographical address
@@ -164,7 +158,7 @@ PNIO_IOXS PNIO_cbf_data_write(
   PNIO_UINT32 slot_num    = pAddr->u.Geo.Slot;
   PNIO_UINT32 subslot_num = pAddr->u.Geo.Subslot;
   
-  printf("PNIO_cbf_data_write(..., len=(..., len=%u, Iocs=%u) for devHandle 0x%x, slot %u, subslot %u\n",
+  printf("PNIO_cbf_data_write(len = %u, Iocs = %u devHandle = %u, slot = %u, subslot = %u\n",
         BufLen, Iocs, DevHndl, slot_num, subslot_num);
   
   InDatLen  [slot_num][subslot_num] = BufLen;		//save data length (only for debugging)
@@ -202,15 +196,14 @@ PNIO_IOXS PNIO_cbf_data_write(
   
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_data_read()                      */
-/*                                                           */
-//************************************************************/
-/* Passes the output data from the stack to the application  */
-/* The application takes the data and writes it to the       */
-/* specified output module                                   */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:                   PNIO_cbf_data_read()                      
+ *                                                           
+ ******************************************************************************
+ * Passes the output data from the stack to the application. The application 
+ * takes the data and writes it to the specified output module                                   
+ *****************************************************************************/
 PNIO_IOXS PNIO_cbf_data_read(
   /*in*/  PNIO_UINT32     DevHndl,        //device handle
   /*in*/  PNIO_DEV_ADDR*  pAddr,          //geographical address
@@ -236,13 +229,13 @@ PNIO_IOXS PNIO_cbf_data_read(
   }
   else if(BufLen <= (PNIO_UINT32)NUMOF_BYTES_PER_SUBSLOT) 
   {
-    memcpy (&OutData[slot_num][subslot_num][0], pBuffer, BufLen); /*Copy the data from the stack to the application buffer*/
-    OutDatIocs [slot_num][subslot_num] = PNIO_S_GOOD; /* assume everything is ok */
+    memcpy (&OutData[slot_num][subslot_num][0], pBuffer, BufLen); //Copy the data from the stack to the application buffer
+    OutDatIocs [slot_num][subslot_num] = PNIO_S_GOOD;             // assume everything is ok 
     
     printf(" IO Data buffer:\n");
     for(i = 0; i < BufLen; i++) 
     {
-      if(i%16 == 0 && i!=0)
+      if(i % 16 == 0 && i!=0)
 	printf("\n");
 
       printf(" 0x%02x", OutData[slot_num][subslot_num][i]);
@@ -253,24 +246,23 @@ PNIO_IOXS PNIO_cbf_data_read(
   {
      printf("!!! PNIO_cbf_data_read: Buflen=%lu > allowed size (%u)!!! Abort reading...\n",
             (unsigned long)BufLen, NUMOF_BYTES_PER_SUBSLOT);
-     OutDatIocs [slot_num][subslot_num] = PNIO_S_BAD; /* set local status to bad */
+     OutDatIocs [slot_num][subslot_num] = PNIO_S_BAD; // set local status to bad 
   }
   
   return(OutDatIocs[slot_num][subslot_num]);		//consumer state (of local IO device)
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_rec_read()                       */
-/*                                                           */
-//************************************************************/
-/* This callback is called to notify tha a read record       */
-/* request has been recieved from IO Controller. This        */
-/* function has to provide the record data and copy it to the*/
-/* specified buffer address. The maximum pBufLen can not be  */
-/* exceeded! This callback returns the real copied data      */
-/* length and the success state (PNIO_OK)                    */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:                  PNIO_cbf_rec_read()                       
+ *                                                           
+ ******************************************************************************
+ * This callback is called to notify tha a read record request has been 
+ * recieved from IO Controller. This function has to provide the record
+ * data and copy it to the specified buffer address. The maximum pBufLen 
+ * can not be exceeded! This callback returns the real copied data      
+ * length and the success state (PNIO_OK)                    
+ *****************************************************************************/
 void PNIO_cbf_rec_read  (
     /*in*/      PNIO_UINT32          DevHndl,         //device handle 
     /*in*/      PNIO_UINT32          Api,             //api number
@@ -336,18 +328,17 @@ void PNIO_cbf_rec_read  (
   }
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_rec_write()                      */
-/*                                                           */
-//************************************************************/
-/* This callback is called to notify that a write record     */
-/* request has been recieved from IO controller. The user has*/
-/* to read the record data from the specified source buffer. */
-/* The length of provided data are specified in function     */
-/* parameter *pBufLen. After serving this function, the user */
-/* returns the success state                                 */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:                     PNIO_cbf_rec_write()                      
+ *                                                           
+ ******************************************************************************
+ * This callback is called to notify that a write record request has been 
+ * recieved from IO controller. The user has to read the record data from 
+ * the specified source buffer. The length of provided data are specified
+ * in function parameter *pBufLen. After serving this function, the user 
+ * returns the success state                                 
+ *****************************************************************************/
 void PNIO_cbf_rec_write  (   
     /*in*/      PNIO_UINT32          DevHndl,         //device handle 
     /*in*/      PNIO_UINT32          Api,             //api number
@@ -403,6 +394,7 @@ void PNIO_cbf_rec_write  (
     else  //if an eror occured, it must be specified according to IEC 61158-6
     {
       *pBufLen=0;
+                                                            
       pPnioState->ErrCode   = 0xdf;	//IODWrites with ErrorDecode = PNIORW
       pPnioState->ErrDecode = 0x80;	//PNIORW
       pPnioState->ErrCode1  = 9;	//example: Error Class 10 = application, ErrorNr 9 = "feature not supported"
@@ -413,19 +405,17 @@ void PNIO_cbf_rec_write  (
     }
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_check_ind()                      */
-/*                                                           */
-//************************************************************/
-/* This callback is called for every submodule of the IO Base*/
-/* Device interface, for which the configuration does        */
-/* not match that of the IO controller. The user program is  */
-/* consequently given the option of changing the submodule   */
-/* layout or marking the submodule as compatible or          */
-/* incorrect. In case of agreement of the configuration,     */
-/* this callback is not called                               */
-/*************************************************************/
+/*****************************************************************************
+ *                                                           
+ * Callback:                   PNIO_cbf_check_ind()                      
+ *                                                           
+ *****************************************************************************
+ * This callback is called for every submodule of the IO Base Device interface,
+ * for which the configuration does not match that of the IO controller. The 
+ * user program is consequently given the option of changing the submodule   
+ * layout or marking the submodule as compatible or incorrect. In case of 
+ * agreement of the configuration, this callback is not called                               
+ *****************************************************************************/
 
 void PNIO_cbf_check_ind(
     /*in*/  PNIO_UINT32     DevHndl,       //device handle 
@@ -440,7 +430,7 @@ void PNIO_cbf_check_ind(
 {
     int idx;
 
-    printf ("## CHECK_IND slot=%u, subslot=%u, ModIdent=%u, State (%u), SubIdent=%u, State (%u)\n",
+    printf ("## CHECK_IND slot=%u, subslot=%u, ModId=0x%x, State(%u), SubId=%u, State (%u)\n",
         pAddr->u.Geo.Slot, pAddr->u.Geo.Subslot, *pModIdent, *pModState, *pSubIdent, *pSubState);
 
     /* get the index int of our configuration */
@@ -462,20 +452,18 @@ void PNIO_cbf_check_ind(
     }
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_ar_check_ind()                   */
-/*                                                           */
-//************************************************************/
-/* This callback is called by the IO Base Device interface as*/
-/* soon as controller establishes a connection with the      */
-/* IO Base device user program. As a result of this callback,*/
-/* application-relation global parameters are transferred to */
-/* the IO Base user program for insspection. In case of      */
-/* errors in the application-relation layout, the IO Base    */
-/* Device user program can terminate the application-        */
-/* relational global parameters                              */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:                   PNIO_cbf_ar_check_ind()                  
+ *                                                           
+ ******************************************************************************
+ * This callback is called by the IO Base Device interface as soon as controller
+ * establishes a connection with the IO Base device user program. As a result of
+ * this callback, application-relation global parameters are transferred to the
+ * IO Base user program for insspection. In case of errors in the application-
+ * relation layout, the IO Base Device user program can terminate the application-        
+ * relational global parameters                              
+ *****************************************************************************/
 
 void PNIO_cbf_ar_check_ind(
     /*in*/  PNIO_UINT32     DevHndl,              //device handle
@@ -497,25 +485,22 @@ void PNIO_cbf_ar_check_ind(
     lc.l = HostIp;
     strncpy(stname, (const char *)pCmiStationName, len);	//copy StationName to stname
     stname[len] = '\0';
-    printf("## PNIO_cbf_ar_check_ind (Station %s, IP %d.%d.%d.%d)\n\n",
+    printf("## PNIO_cbf_ar_check_ind (Station %s, IP %d.%d.%d.%d)\n",
         stname,lc.c[0], lc.c[1], lc.c[2], lc.c[3]);
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_ar_info_ind()                    */
-/*                                                           */
-//************************************************************/
-/* This callback is called by the IO Base Device interface   */
-/* as soon as the application-relation for the IO controller */
-/* is laid out. Consequently, the IO Base Device user program*/
-/* is informed about the modules and submodules that wiil be */
-/* operated in this application relation.                    */
-/*                                                           */
-/* In this callback function user can initialize IO data     */
-/* in submodule to initial value 0 a can also set local      */
-/* consumer and provider status                              */
-/*************************************************************/
+/******************************************************************************
+ *                                                           
+ * Callback:                    PNIO_cbf_ar_info_ind()                    
+ *                                                           
+ ******************************************************************************
+ * This callback is called by the IO Base Device interface as soon as the 
+ * application-relation for the IO controller is laid out. Consequently, 
+ * the IO Base Device user program is informed about the modules and submodules
+ * that wiil be operated in this application relation. In this callback 
+ * function user can initialize IO data in submodule to initial value 0 a can
+ * also set local consumer and provider status                              
+ ******************************************************************************/
 
 void PNIO_cbf_ar_info_ind(
     /*in*/  PNIO_UINT32     DevHndl,    //device handle
@@ -523,25 +508,67 @@ void PNIO_cbf_ar_info_ind(
     /*in*/  PNIO_UINT16     SessionKey, //session key 
     /*in*/  PNIO_AR_TYPE*   pAr)        //pointer to application-relation structure PNIO_AR_TYPE 
 {
-    g_arNumber = ArNumber;     /* Store the AR number */
-    g_SessionKey = SessionKey; /* Store the session key */
+    int i,j;
+  
+    g_arNumber = ArNumber;     // Store the AR number 
+    g_SessionKey = SessionKey; // Store the session key 
 
-    printf ("## AR-INFO_IND new AR from PNIO controller established SessionKey %x\n",
+    printf ("## AR-INFO_IND new AR from PNIO controller established, SessionKey %x\n",
         SessionKey);
+    
+    //---------------------------------------------------------------------
+    //   set all IO data in submodules to inital value = 0              
+    //---------------------------------------------------------------------
+    memset (&InData,        0, sizeof (InData));        // IO data (input) 
+    memset (&InDatLen,      0, sizeof (InDatLen));      // length of input data 
+    memset (&InDatIops,     0, sizeof (InDatIops));     // local provider status 
+    memset (&InDatIocs,     0, sizeof (InDatIocs));     // remote consumer status 
+
+    memset (&OutData,       0, sizeof (OutData));       // IO data (output) 
+    memset (&OutDatLen,     0, sizeof (OutDatLen));     // length of output data 
+    memset (&OutDatIocs,    0, sizeof (OutDatIocs));    // local consumer status 
+    memset (&OutDatIops,    0, sizeof (OutDatIops));    // remote provider status 
+
+    //----------------------------------------------------------------------
+    // set local provider status preset values for all input/output slots   
+    // set local consumer status for all output slots
+    //----------------------------------------------------------------------
+    for(i = 0; i < DEVICE_DATA_ENTRIES ; i++) {
+        for(j = 0; j < 1 /*g_device_data[i].maxSubslots*/; j++) {
+            /*** set local provider state = GOOD for input data***/
+            if(i == 0) {
+                if(g_device_data[i].modState == 1) { /* plugged */
+                    InDatIops [i][j] = PNIO_S_GOOD;
+					OutDatIocs [i][j] = PNIO_S_GOOD;
+                } else {
+                    InDatIops [i][j] = PNIO_S_BAD;
+					OutDatIocs [i][j] = PNIO_S_BAD;
+                }
+            } else {
+                if(g_device_data[i].modState == 1 &&
+                    g_device_data[i+j].subState == 1) { /* plugged */
+                    InDatIops [i][j] = PNIO_S_GOOD;
+					OutDatIocs [i][j] = PNIO_S_GOOD;
+                } else {
+                    InDatIops [i][j] = PNIO_S_BAD;
+					OutDatIocs [i][j] = PNIO_S_BAD;
+                }
+            }
+        }
+    }
 
     AR_INFO_IND_flag = 1;
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_ar_indata_ind()                  */
-/*                                                           */
-//************************************************************/
-/* This callback is called by the IO Base Device interface   */
-/* as soon as an IO controller has transmitted the IO data   */
-/* for the first time. It signals the beginning of cyclical  */
-/* data exchange                                             */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:                  PNIO_cbf_ar_indata_ind()                  
+ *                                                           
+ ******************************************************************************
+ * This callback is called by the IO Base Device interface as soon as an IO 
+ * controller has transmitted the IO data for the first time. It signals the
+ * beginning of cyclical data exchange                                             
+ ******************************************************************************/
 
 void PNIO_cbf_ar_indata_ind(
     /*in*/ PNIO_UINT32     DevHndl,        //device handle
@@ -554,15 +581,14 @@ void PNIO_cbf_ar_indata_ind(
     INDATA_IND_flag = 1;
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_ar_abort_ind()                   */
-/*                                                           */
-//************************************************************/
-/* This callback is called by the IO Base Device interface   */
-/* as soon as the connection is terminated after a data      */
-/* exchange with IO began                                    */
-/*************************************************************/
+/*****************************************************************************  
+ *                                                           
+ * Callback:                  PNIO_cbf_ar_abort_ind()                   
+ *                                                           
+ *****************************************************************************
+ * This callback is called by the IO Base Device interface as soon as the
+ * connection is terminated after a data exchange with IO began                                    
+ *****************************************************************************/
 void PNIO_cbf_ar_abort_ind(
     /*in*/  PNIO_UINT32     DevHndl,     //device handle
     /*in*/  PNIO_UINT16     ArNumber,    //Application-relation number 
@@ -574,34 +600,34 @@ void PNIO_cbf_ar_abort_ind(
         ArNumber, ReasonCode);
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_ar_offline_ind()                 */
-/*                                                           */
-//************************************************************/
-/* This callback is called by the IO Base Device interface   */
-/* as soon as the connection is terminated before a data     */
-/* exchange with IO began                                    */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:                   PNIO_cbf_ar_offline_ind()                 
+ *                                                           
+ ******************************************************************************
+ * This callback is called by the IO Base Device interface as soon as the 
+ * connection is terminated before a data exchange with IO began                                    
+ *****************************************************************************/
 void PNIO_cbf_ar_offline_ind(
     /*in*/  PNIO_UINT32     DevHndl,       //device handle 
     /*in*/  PNIO_UINT16     ArNumber,      //Application-relation number 
     /*in*/  PNIO_UINT16     SessionKey,    //session key 
     /*in*/  PNIO_AR_REASON  ReasonCode)    //reason code 
 {
-    printf ("## AR Offline indication, ArNumber = %x, Reason = %x\n\n",
+    printf ("## AR Offline indication, ArNumber = %x, Reason = %x\n",
         ArNumber, ReasonCode);
+    
+    OFFLINE_IND_flag = 1;
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_prm_end_ind()                    */
-/*                                                           */
-//************************************************************/
-/* This callback is called by the IO Base Device interface   */
-/* as soon as an IO controller signals the end of the        */
-/* parametrizing phase                                       */
-/*************************************************************/
+/******************************************************************************
+ *                                                           
+ * Callback:                   PNIO_cbf_prm_end_ind()                    
+ *                                                           
+ ******************************************************************************
+ * This callback is called by the IO Base Device interface as soon as an IO 
+ * controller signals the end of the parametrizing phase                                       
+ *****************************************************************************/
 void PNIO_cbf_prm_end_ind(
     /*in*/  PNIO_UINT32 DevHndl,            //device handle
     /*in*/  PNIO_UINT16 ArNumber,           //application-relation number 
@@ -623,66 +649,65 @@ void PNIO_cbf_prm_end_ind(
     i++;
     usleep(100000);
   }
-    printf ("\n## Event parametrizing phase -Application ready- received, ArNumber = %x\n\n",
-        ArNumber);
-
+    printf ("## End of parametrizing phase - Application ready - received ArNumber = %x\n", ArNumber);
+    printf("\n--------------------------------------------------------------------------------\n\n");
+    
     PRM_END_IND_flag = 1;
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_cp_stop_req()                    */
-/*                                                           */
-//************************************************************/
-/* This callback is called by the IO Base Device interface   */
-/* as soon as an IO controller stop request is recieved      */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:                PNIO_cbf_cp_stop_req()                    
+ *                                                           
+ ******************************************************************************
+ * This callback is called by the IO Base Device interface   
+ * as soon as an IO controller stop request is recieved      
+ *****************************************************************************/
 void PNIO_cbf_cp_stop_req(PNIO_UINT32 DevHndl)
 {
   printf("## PNIO_cbf_cp_stop_req\n");    
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_device_stopped()                 */
-/*                                                           */
-//************************************************************/
-/* This callback is called by the IO Base Device interface   */
-/* as soon as an IO device stop requests is recieved         */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:               PNIO_cbf_device_stopped()                 
+ *                                                           
+ ******************************************************************************
+ * This callback is called by the IO Base Device interface as soon as an IO 
+ * device stop requests is recieved         
+ *****************************************************************************/
 void PNIO_cbf_device_stopped(
     /*in*/  PNIO_UINT32 DevHndl,    //Handle for Multidevice 
     /*in*/  PNIO_UINT32 Reserved)   //Reserved for future use
 {
-  printf("## PNIO_cbf_device_stopped\n\n");
+  printf("## PNIO_cbf_device_stopped\n");
 }
 
-
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_req_done()                       */
-/*                                                           */
-//************************************************************/
-/* This callback is called if the IO Base device interface   */
-/* as soon as an alarm is sent                               */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:                PNIO_cbf_req_done()                       
+ *                                                           
+ ******************************************************************************
+ * This callback is called if the IO Base device interface as soon as an alarm
+ * is sent                               
+ *****************************************************************************/
 void PNIO_cbf_req_done (
     /*in*/ PNIO_UINT32          DevHndl,        //device handle
     /*in*/ PNIO_UINT32          UserHndl,       //user handle
     /*in*/ PNIO_UINT32          Status,         //status
-    /*in*/ PNIO_ERR_STAT      * pPnioState)
+    /*in*/ PNIO_ERR_STAT      * pPnioState)	 //PNIO state	
 {
     printf("req_done not supported\n");
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Callback:        PNIO_cbf_apdu_status_ind()                */
-/*                                                           */
-//************************************************************/
-/* This callback is called after the state of the controller */
-/* has changed                                               */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Callback:                PNIO_cbf_apdu_status_ind()                
+ *                                                           
+ ******************************************************************************
+ * This callback is called after the state of the controller 
+ * has changed                                               
+ *****************************************************************************/
 void PNIO_cbf_apdu_status_ind(
     /*in*/  PNIO_UINT32          DevHndl,	//device handle
     /*in*/  PNIO_UINT16          ArNumber,    //Application-relation number
@@ -692,43 +717,55 @@ void PNIO_cbf_apdu_status_ind(
     printf("APDU Status Change not supported");
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Function:        do_after_prm_end_ind_cbf()                */
-/*                                                           */
-//************************************************************/
-/* This function is called after the PNIO_cbf_prm_end_ind    */
-/*callback has been called, it calls PNIO_initiate_dat_write */
-/*PNIO_initiate_data_read and PNIO_set_appl_state_ready      */       
-/*************************************************************/
+
+
+/****************************************************************************** 
+ *                                                           
+ *                             FUNCTIONS                               
+ *                                                           
+ ******************************************************************************/ 
+
+
+
+
+/****************************************************************************** 
+ *                                                           
+ * Function:            do_after_prm_end_ind_cbf()                
+ *                                                           
+ ******************************************************************************
+ * This function is called after the PNIO_cbf_prm_end_ind callback has been 
+ * called, it calls PNIO_initiate_dat_write PNIO_initiate_data_read and 
+ * PNIO_set_appl_state_ready             
+ *****************************************************************************/
 
 void do_after_prm_end_ind_cbf(void)
 {
   PNIO_UINT32 dwErrorCode;
   PNIO_APPL_READY_LIST_TYPE readyListType;
   
-  /* Here we need to call "PNIO_initiate_data_write" so that the IO Base Device user       */
-  /* program can initialize the  incoming data (from the perspective of the IO controller) */
-  /* for the functional submodules and set the local status to "GOOD". For all             */
-  /* non-functional submodules, the local status should be set to "BAD"                    */
-  /* We have already initialized the local buffer in "PNIO_cbf_ar_info_ind" callback       */
+  /* Here we need to call "PNIO_initiate_data_write" so that the IO Base Device user       
+  * program can initialize the  incoming data (from the perspective of the IO controller) 
+  * for the functional submodules and set the local status to "GOOD". For all             
+  * non-functional submodules, the local status should be set to "BAD"                    
+  * We have already initialized the local buffer in "PNIO_cbf_ar_info_ind" callback      */
   
   dwErrorCode = PNIO_initiate_data_write(g_dwHandle);
   if(dwErrorCode != PNIO_OK)
     printf("Error: PNIO_init_data_write. 0x%x\n", dwErrorCode);
     
-  /* We also have to call "PNIO_initiate_data_read" so that the IO Base Device user program  */
-  /* can set the local status for functional submodules of all the outgoing data             */
-  /* (from the perspective of the IO controller) to GOOD. For all non-functional submodules, */
-  /* the local status has to be set to "BAD".                                                */
+  /* We also have to call "PNIO_initiate_data_read" so that the IO Base Device user program  
+   * can set the local status for functional submodules of all the outgoing data             
+   * (from the perspective of the IO controller) to GOOD. For all non-functional submodules, 
+   * the local status has to be set to "BAD".                                                */
   
   dwErrorCode = PNIO_initiate_data_read(g_dwHandle);
    if(dwErrorCode != PNIO_OK)
     printf("Error: PNIO_init_data_read. 0x%x\n", dwErrorCode);
    
-  /* Here we need to call PNIO_set_appl_state_ready so that                                  */
-  /* the IO Base Device user program registers a list of the non-functional submodules       */
-  /* and the extent of readiness to get into a data exchange at the IO controller            */ 
+  /* Here we need to call PNIO_set_appl_state_ready so that                                  
+   * the IO Base Device user program registers a list of the non-functional submodules       
+   * and the extent of readiness to get into a data exchange at the IO controller            */ 
+  
   memset(&readyListType, 0, sizeof(readyListType));
   readyListType.ap_list.Flink = NULL;
   readyListType.ap_list.Blink = NULL;
@@ -745,31 +782,31 @@ void do_after_prm_end_ind_cbf(void)
         printf("\nError in setting appl state ready\n");
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Function:        do_after_prm_end_ind_cbf()                */
-/*                                                           */
-//************************************************************/
-/* This function is called after the PNIO_cbf_ar_indata_ind  */
-/* callback has been called, it calls                        */
-/* PNIO_initiate_data_write and PNIO_initiate_data_read()    */
-/*********************************************************** */
+/******************************************************************************
+ *                                                           
+ * Function:             do_after_prm_end_ind_cbf()                
+ *                                                           
+ ******************************************************************************
+ * This function is called after the PNIO_cbf_ar_indata_ind callback has been
+ * called, it calls PNIO_initiate_data_write and PNIO_initiate_data_read()    
+ *****************************************************************************/
 void do_after_indata_ind_cbf(void)
 {
   PNIO_UINT32 dwErrorCode = PNIO_OK;
-  /* Here we need to call "PNIO_initiate_data_write" so that the IO Base Device user       */
-  /* program can initialize the  incoming data (from the perspective of the IO controller) */
-  /* for the functional submodules and set the local status to "GOOD". For all             */
-  /* non-functional submodules, the local status should be set to "BAD"                    */
-  /* We have already initialized the local buffer in "PNIO_cbf_ar_info_ind" callback        */
+  /* Here we need to call "PNIO_initiate_data_write" so that the IO Base Device user       
+   * program can initialize the  incoming data (from the perspective of the IO controller) 
+   * for the functional submodules and set the local status to "GOOD". For all             
+   * non-functional submodules, the local status should be set to "BAD"                    
+   * We have already initialized the local buffer in "PNIO_cbf_ar_info_ind" callback       */
+  
   dwErrorCode = PNIO_initiate_data_write(g_dwHandle);
     if(dwErrorCode != PNIO_OK) {
         printf("## Error - PNIO_init_data_write. 0x%x\n", dwErrorCode);
     }
-  /* We also have to call "PNIO_initiate_data_read" so that the IO Base Device user program   */
-  /* can set the local status for functional submodules of all the outgoing data              */
-  /* (from the perspective of the IO controller) to GOOD. For all non-functional submodules,  */
-  /* the local status has to be set to "BAD".                                                 */
+  /* We also have to call "PNIO_initiate_data_read" so that the IO Base Device user program   
+   * can set the local status for functional submodules of all the outgoing data              
+   * (from the perspective of the IO controller) to GOOD. For all non-functional submodules,  
+   * the local status has to be set to "BAD".                                                 */
   
   dwErrorCode = PNIO_initiate_data_read(g_dwHandle);
     if(dwErrorCode != PNIO_OK) {
@@ -777,16 +814,13 @@ void do_after_indata_ind_cbf(void)
     }
 }
 
-
-/*********************************************************** */
-/*                                                           */
-/*Function:        GetSubmodNum()                            */
-/*                                                           */
-//************************************************************/
-/* The function returns the index in the IO data array for   */
-/* the given module                                          */
-/*************************************************************/
-
+/****************************************************************************** 
+ *                                                           
+ * Function:                GetSubmodNum()                            
+ *                                                           
+ ******************************************************************************
+ * The function returns the index in the IO data array for the given module                                          
+ *****************************************************************************/
 int GetSubmodNum(PNIO_UINT32 mod, PNIO_UINT32 sub)
 {
   int i;
@@ -810,17 +844,14 @@ int GetSubmodNum(PNIO_UINT32 mod, PNIO_UINT32 sub)
   return -1;
 }
 
-
-/*********************************************************** */
-/*                                                           */
-/*Function:        Initialize()                              */
-/*                                                           */
-//************************************************************/
-/* The function does the initialization of the PNIO device   */
-/* registration of callbacks is part of initialization       */
-/*************************************************************/
-
-
+/******************************************************************************
+ *                                                           
+ * Function:                     Initialize()                              
+ *                                                           
+ ******************************************************************************
+ * The function does the initialization of the PNIO device registration of 
+ * callbacks is part of initialization       
+ *****************************************************************************/
 PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
 {
   
@@ -861,6 +892,7 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
   structCBFunctions.cbf_start_led_flash   = NULL;
   structCBFunctions.cbf_stop_led_flash    = NULL;  
          
+  printf("--------------------------------------------------------------------------------\n\n");
   printf("Open PNIO_device: ");
   
   //Connect to CP and obtain handle
@@ -887,14 +919,13 @@ PNIO_UINT32 Initialize(PNIO_UINT32 CP_INDEX)
   return dwHandle;
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Function:        UnInitialize()                            */
-/*                                                           */
-//************************************************************/
-/* The function does the deinitialization of the PNIO device */
-/*************************************************************/
-
+/****************************************************************************** 
+ *                                                           
+ * Function:                   UnInitialize()                            
+ *                                                           
+ ******************************************************************************
+ * The function does the deinitialization of the PNIO device 
+ *****************************************************************************/
 void UnInitialize(PNIO_UINT32 dwHandle)
 {
   printf("Close PNIO_device: ");
@@ -910,15 +941,14 @@ void UnInitialize(PNIO_UINT32 dwHandle)
   printf("SUCCESS\n");
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Function:        AddApi()                                  */
-/*                                                           */
-//************************************************************/
-/* The function adds all the api stated in configuration     */
-/* structure for each module/submodule                       */
-/*************************************************************/
-
+/****************************************************************************** 
+ *                                                           
+ * Function:                      AddApi()                                  
+ *                                                           
+ ******************************************************************************
+ * The function adds all the api stated in configuration structure for each 
+ * module/submodule                       
+ *****************************************************************************/
 void AddApi(void)
 {
   int i;
@@ -941,8 +971,7 @@ void AddApi(void)
 	//api was added 
 	break;
       }
-    }    
-  
+    }      
   
     if(i == j)   /* not added, add a new api */
     { 
@@ -964,7 +993,7 @@ void AddApi(void)
 	}
       }
   
-      printf("Adding profile: ");
+      printf("Adding API profile: ");
   
       dwErrorCode = PNIO_api_add(
 	/*in*/ g_dwHandle,
@@ -982,16 +1011,16 @@ void AddApi(void)
 	printf("SUCCESS\n");
     }
   }
+  printf("\n--------------------------------------------------------------------------------\n\n");
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Function:        RemoveApi()                               */
-/*                                                           */
-//************************************************************/
-/* The function remove all the api stated in configuration   */
-/* structure                                                 */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                            
+ * Function:                    RemoveApi()                               
+ *                                                           
+ ******************************************************************************
+ * The function remove all the api stated in configuration structure                                                 
+ *****************************************************************************/
 void RemoveApi(void)
 {
   int i;
@@ -1021,20 +1050,18 @@ void RemoveApi(void)
 	exit(1);
       }
       else     
-        printf("SUCCESS");
+        printf("SUCCESS\n");
     }
   }
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Function:        AddModSubMod()                            */
-/*                                                           */
-//************************************************************/
-/* The function adds all the modules and submodules of the   */
-/* device in serial order                                    */
-/*************************************************************/
-
+/****************************************************************************** 
+ *                                                           
+ * Function:        AddModSubMod()                            
+ *                                                           
+ ******************************************************************************
+ * The function adds all the modules and submodules in serial order                                    
+ *****************************************************************************/
 void AddModSubMod(void)
 {
   PNIO_UINT32 dwErrorCode = PNIO_OK;
@@ -1047,7 +1074,7 @@ void AddModSubMod(void)
   //---------------------------------------------------
   //Add module 0 
   //---------------------------------------------------
-  printf("Pluging module 0 ... \n");
+  printf("Pluging module 0: ");
   addr.u.Geo.Slot    = g_device_data[0].slot;    //plug module 0
   addr.u.Geo.Subslot = g_device_data[0].subslot; //get the corresponding sub-slot
   
@@ -1069,7 +1096,7 @@ void AddModSubMod(void)
     g_device_data[0].modState = 1;
   }
   
-  printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
+  printf("Module 0 info: api = %u, slot = %d, subslot = %d, max_slots = %d, mod_id = 0x%x\n",
         g_device_data[0].api,
         g_device_data[0].slot,
         g_device_data[0].subslot,
@@ -1085,7 +1112,7 @@ void AddModSubMod(void)
   //-----------------------------------------------------
   //Add submodule corresponding to module 0
   //-----------------------------------------------------
-  printf("Pluging submodule 0 to module 0...\n");
+  printf("Pluging submodule 0 to module 0...");
   dwErrorCode = PNIO_sub_plug (
      /*in*/ g_dwHandle,                   /* device handle */
      /*in*/ g_device_data[0].api,         /* api number */
@@ -1104,115 +1131,112 @@ void AddModSubMod(void)
     g_device_data[0].subState = 1;
   }
   
-   printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
-        g_device_data[0].api,
-        g_device_data[0].slot,
-        g_device_data[0].subslot,
-        g_device_data[0].maxSubslots,
-        g_device_data[0].modId);
-
     if(!g_device_data[0].subState) {
         printf("ERROR: Failure in plugging the submodule corresponding to module 0\n");
         printf(" -> no other module / submodule will be plugged...\n");
 	exit(1);
     }
   
-  printf("Pluging another modules, submodules...\n");
+  
   
   //----------------------------------------------------
   //Add all modules
   //----------------------------------------------------
+  if(NUMOF_SLOTS > 1)
+  {
+    printf("Pluging another modules, submodules...\n"); 
   
-  for(i = 1; i < g_dwArraySize;)
-  {
-    addr.u.Geo.Slot    = g_device_data[i].slot;	//plug module at correct slot 
-    addr.u.Geo.Subslot = g_device_data[i].subslot;    //get the corresponding sub-slot
-    
-    printf("Pluging module %d: " ,i);
-    dwErrorCode = PNIO_mod_plug(
-       /*in*/ g_dwHandle,   		   //device handle
-       /*in*/ g_device_data[i].api,       //api number
-       /*in*/ &addr,                      //location(slot, subslot)
-       /*in*/ g_device_data[i].modId);    //module identifier
-                  
-    if(dwErrorCode != PNIO_OK)
+    for(i = 1; i < g_dwArraySize;)
     {
-      printf("Error 0x%x\n", (int) dwErrorCode);
-      g_device_data[i].modState = 0;
-    }
-    else
-    {
-      printf("SUCCESS\n");
-      g_device_data[i].modState = 1;
-    }
-    
-    printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
-          g_device_data[i].api,
-          g_device_data[i].slot,
-          g_device_data[i].subslot,
-          g_device_data[i].maxSubslots,
-          g_device_data[i].modId);
-   
-    if(dwErrorCode == PNIO_OK)
-    {
-       //advance in the g_device_data structure jumping over all the submodule entries
-       //to reach the next module entry in the structure
-       i += g_device_data[i].maxSubslots;
-    }
-    else
-    {
-      //go to the next entry in g_device_data table
-      i++;
-    }
-        
-  } //end for
- 
-  //----------------------------------------------------
-  //Add all submodules
-  //----------------------------------------------------
-  for(i = 1; i < g_dwArraySize; i++)
-  {
-    if(g_device_data[i].maxSubslots > 0){
-      //beginning of a new slot
-      slot = i;   //index of corresponding slot for a given subslot
+      addr.u.Geo.Slot    = g_device_data[i].slot;	//plug module at correct slot 
+      addr.u.Geo.Subslot = g_device_data[i].subslot;    //get the corresponding sub-slot
       
-      g_device_data[slot].subState = 1; 
-    }
-    
-    if(g_device_data[slot].modState)
-    {
-      //add submodule only if the module is added
-      addr.u.Geo.Slot     = g_device_data[i].slot;
-      addr.u.Geo.Subslot  = g_device_data[i].subslot;
-      
-      printf("Pluging submodule to module %d:", i);
-      dwErrorCode = PNIO_sub_plug (
-       /*in*/ g_dwHandle,                   //device handle
-       /*in*/ g_device_data[i].api,         //api number
-       /*in*/ &addr,                        //location(slot, subslot)
-       /*in*/ g_device_data[i].subslotId);  //submodule identifier
-	
+      printf("Pluging module %d: " ,i);
+      dwErrorCode = PNIO_mod_plug(
+	/*in*/ g_dwHandle,   		   //device handle
+	/*in*/ g_device_data[i].api,       //api number
+	/*in*/ &addr,                      //location(slot, subslot)
+	/*in*/ g_device_data[i].modId);    //module identifier
+		    
       if(dwErrorCode != PNIO_OK)
       {
 	printf("Error 0x%x\n", (int) dwErrorCode);
-	g_device_data[i].subState = 0;
-	g_device_data[slot].subState = 0;
+	g_device_data[i].modState = 0;
       }
       else
       {
 	printf("SUCCESS\n");
-	g_device_data[i].subState = 1;
+	g_device_data[i].modState = 1;
       }
       
-      printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
-          g_device_data[i].api,
-          g_device_data[i].slot,
-          g_device_data[i].subslot,
-          g_device_data[i].maxSubslots,
-          g_device_data[i].modId);
-    }
-  }  //end for
- 
+      printf(" api = %u, slot = %u, subslot = %d, max_slots=%d, mod_id=0x%x\n",
+	    g_device_data[i].api,
+	    g_device_data[i].slot,
+	    g_device_data[i].subslot,
+	    g_device_data[i].maxSubslots,
+	    g_device_data[i].modId);
+    
+      if(dwErrorCode == PNIO_OK)
+      {
+	//advance in the g_device_data structure jumping over all the submodule entries
+	//to reach the next module entry in the structure
+	i += g_device_data[i].maxSubslots;
+      }
+      else
+      {
+	//go to the next entry in g_device_data table
+	i++;
+      }
+	  
+    } //end for
+  
+    //----------------------------------------------------
+    //Add all submodules
+    //----------------------------------------------------
+    for(i = 1; i < g_dwArraySize; i++)
+    {
+      if(g_device_data[i].maxSubslots > 0){
+	//beginning of a new slot
+	slot = i;   //index of corresponding slot for a given subslot
+	
+	g_device_data[slot].subState = 1; 
+      }
+      
+      if(g_device_data[slot].modState)
+      {
+	//add submodule only if the module is added
+	addr.u.Geo.Slot     = g_device_data[i].slot;
+	addr.u.Geo.Subslot  = g_device_data[i].subslot;
+	
+	printf("Pluging submodule to module %d:", i);
+	dwErrorCode = PNIO_sub_plug (
+	/*in*/ g_dwHandle,                   //device handle
+	/*in*/ g_device_data[i].api,         //api number
+	/*in*/ &addr,                        //location(slot, subslot)
+	/*in*/ g_device_data[i].subslotId);  //submodule identifier
+	  
+	if(dwErrorCode != PNIO_OK)
+	{
+	  printf("Error 0x%x\n", (int) dwErrorCode);
+	  g_device_data[i].subState = 0;
+	  g_device_data[slot].subState = 0;
+	}
+	else
+	{
+	  printf("SUCCESS\n");
+	  g_device_data[i].subState = 1;
+	}
+	
+	printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
+	    g_device_data[i].api,
+	    g_device_data[i].slot,
+	    g_device_data[i].subslot,
+	    g_device_data[i].maxSubslots,
+	    g_device_data[i].modId);
+      }
+    }  //end for
+  }
+  
   //if not all the modules/submodules are plugger correctyl, print warning
   for(i = 0; i < g_dwArraySize; i++)
   {
@@ -1221,21 +1245,22 @@ void AddModSubMod(void)
       printf("WARNING: Not all modules or submodules were plugged correctly!!\n");
       break;
     }
-  } 
+  }
+  printf("\n--------------------------------------------------------------------------------\n\n");
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Function:        RemoveModSubMod()                         */
-/*                                                           */
-//************************************************************/
-/* The function first removes the submodules and then the    */
-/* modules from PNIO device in reverse order                 */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Function:                    RemoveModSubMod()                         
+ *                                                           
+ ******************************************************************************
+ * The function first removes the submodules and then the modules from PNIO 
+ * device in reverse order                 
+ *****************************************************************************/
 void RemoveModSubMod(void)
 {
   int i;
-  PNIO_DEV_ADDR addr;         //location module/submodule
+  PNIO_DEV_ADDR addr;    //location module/submodule
   PNIO_UINT32 dwErrorCode = PNIO_OK; 
   
   //Remove modules/submodules in reverse order
@@ -1250,7 +1275,7 @@ void RemoveModSubMod(void)
       //----------------------------------------------------
       //Remove submodules
       //----------------------------------------------------
-      printf("Removing submodule:");
+      printf("Removing submodule: ");
       dwErrorCode = PNIO_sub_pull(
 	/*in*/ g_dwHandle,
 	/*in*/ g_device_data[i].api, &addr);
@@ -1263,7 +1288,7 @@ void RemoveModSubMod(void)
       else
 	printf("Error 0x%x\n", (int) dwErrorCode);
       
-        printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
+        printf("Submodule info: api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=0x%x\n",
                 g_device_data[i].api,
                 g_device_data[i].slot,
                 g_device_data[i].subslot,
@@ -1294,7 +1319,7 @@ void RemoveModSubMod(void)
       else
 	printf("Error 0x%x\n", (int) dwErrorCode);
       
-      printf(" api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=%u\n",
+      printf("Module info: api=%u, slot=%d, subslot=%d, max_slots=%d, mod_id=0x%x\n",
                 g_device_data[i].api,
                 g_device_data[i].slot,
                 g_device_data[i].subslot,
@@ -1306,13 +1331,13 @@ void RemoveModSubMod(void)
   }  
 }
 
-/*********************************************************** */
-/*                                                           */
-/*Function:            PrintfIOData()                        */
-/*                                                           */
-//************************************************************/
-/* The function displays the buffer contents on screen       */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Function:                  PrintIOData()                        
+ *                                                           
+ ******************************************************************************
+ * The function displays the buffer contents to the terminal       
+ ******************************************************************************/
 void PrintIOData()
 {
   int SlotNum;
@@ -1368,15 +1393,14 @@ void PrintIOData()
   }
 }
 
-
-/*********************************************************** */
-/*                                                           */
-/*Function:        ConfigureDeviceData()                     */
-/*                                                           */
-//************************************************************/
-/* This function creates a structure out of the config data  */
-/* and fills the unfilled members whereever necesary.        */
-/*************************************************************/
+/****************************************************************************** 
+ *                                                           
+ * Function:                 ConfigureDeviceData()                     
+ *                                                           
+ ******************************************************************************
+ * This function creates a structure out of the config data and fills the 
+ * unfilled members whereever necesary.        
+ *****************************************************************************/
 void ConfigureDeviceData(void)
 {
   unsigned int i = 0;
@@ -1387,7 +1411,7 @@ void ConfigureDeviceData(void)
   g_device_data = device_data;
   for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
   {  
-    printf("Data structure.slot[%d]: %d  %d  %d  %d \n", 
+    printf("Data structure.slot[%d]: slot = %u  subslot = %u  mod_id = 0x%x  subslot_id = %u \n", 
 	   i,
 	   g_device_data[i].slot,
 	   g_device_data[i].subslot,
@@ -1399,14 +1423,7 @@ void ConfigureDeviceData(void)
   //fill idxTbl with -1
   memset(idxTbl, -1, DEVICE_DATA_ENTRIES * sizeof(int));
   idxTbl[idx++] = g_device_data[0].slot;
-  
-  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
-  {  
-    printf("idxTbl[%d]: %d \n", 
-	   i,
-	   idxTbl[i]);
-  }
-  
+    
   //browsing through the device data structure
   for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
   {
@@ -1422,43 +1439,45 @@ void ConfigureDeviceData(void)
       idxTbl[idx++] = g_device_data[i].slot;		//store the entry of the new slot in idxTbl
     }
   }
-  
-  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
-  {  
-    printf("idxTbl[%d]: %d \n", 
-	   i,
-	   idxTbl[i]);
-  }
-  
+ 
 }
+
+/****************************************************************************** 
+ *                                                           
+ * 				 MAIN                   
+ *                                                           
+ ******************************************************************************/
 
 
 int main(void)
 {
   PNIO_UINT32 ErrorCode = PNIO_OK; 
   int callback_counter = 0;
+  int ch = 0;
+   
+  int i, slot, subslot;  /* i corresponds to every element in g_device_data */
+  char data[50] = {0};
+
   
+  printf("--------------------------------------------------------------------------------\n\n");
   printf("Application does following: \n");
   printf("Initialize PNIO device\n");
-  printf("Read/Write IO data\n");
-  printf("Process the data record read/write request of IO controller\n");
-  printf("Uninitialize device\n");
+  printf("Waits for user command to Uninitialize\n");
+  printf("Uninitialize CP\n\n");
+  printf("--------------------------------------------------------------------------------\n\n");
   
-  ConfigureDeviceData();
-  
+  //----------------------------------------------------
   //Initialize
+  //----------------------------------------------------
+  ConfigureDeviceData();	
   g_dwHandle = Initialize(g_dwCpId);
-  
-  //Add API profile
   AddApi();
-  
-  //Add modules and submodules to the device
   AddModSubMod();
   
   //----------------------------------------------------
   //Start the CP
   //----------------------------------------------------
-  printf("Starting PNIO device...\n");
+  printf("Starting PNIO device: ");
   ErrorCode = PNIO_device_start(g_dwHandle);
   if(ErrorCode != PNIO_OK)
   {   printf("Error: 0x%x\n", ErrorCode);
@@ -1467,15 +1486,24 @@ int main(void)
   else
   {
     printf("SUCCESS\n");
-    ErrorCode = PNIO_set_dev_state(g_dwHandle, PNIO_DEVSTAT_OK);
-    if(ErrorCode != PNIO_OK)
-    {
-      printf("Error: 0x%x\n", ErrorCode);
-      goto CLEAN_UP;
-    }
   }
-
-  printf("\nWaiting for callbacks...\n");
+ 
+  printf("Setting device state OK: ");
+  ErrorCode = PNIO_set_dev_state(g_dwHandle, PNIO_DEVSTAT_OK);
+  if(ErrorCode != PNIO_OK)
+  {
+    printf("Error: 0x%x\n", ErrorCode);
+    goto CLEAN_UP;
+  }
+  else
+  {
+    printf("SUCCESS\n");
+  }
+    
+  //----------------------------------------------------
+  //Wait for callbacks
+  //----------------------------------------------------  
+  printf("Waiting for callbacks...\n");
   
   //Wait for necessary callbacks
   while(callback_counter != MAX_COUNT)
@@ -1505,16 +1533,48 @@ int main(void)
     
     usleep(100000);
     callback_counter++;
+  }
     
-    if(callback_counter == MAX_COUNT)
-      goto CLEAN_UP;
+  if(callback_counter == MAX_COUNT)
+     goto CLEAN_UP;
     
-    printf("All necessary callbacks called...\n");
+  printf("All necessary callbacks called, press 'q' to close the device...\n");
+    
+  //----------------------------------------------------
+  //Initialize read/write buffers 
+  //----------------------------------------------------
+  for(i = 0; i < g_dwArraySize; i++)
+  {
+    //set initial values for input data
+    memset(data, 0 , 50);
+    
+    slot = g_device_data[i].slot;
+    subslot = g_device_data[i].subslot;
+      
+    sprintf(data,"SLOT_ID=%d, SUBSLOT_ID=%d, DATA=%d.%d",
+                    slot, subslot, slot, subslot);
+    memcpy(InData[slot][subslot], data, 50);
     
   }
+  PrintIOData();
+  
+  
+  
+  
+  //loop to wait for the user input
+  do{
+    usleep(100000);
+    ch = getchar();
+  } while(((int)'q' != ch) && ((int)'Q' != ch));
+
+  
+  //----------------------------------------------------
+  //CLEAN UP
+  //----------------------------------------------------
   
 CLEAN_UP:
-  printf("\nStopping PNIO device...\n");
+  printf("\n--------------------------------------------------------------------------------\n\n");
+  printf("Stopping PNIO device...\n");
   
   ErrorCode = PNIO_device_stop(g_dwHandle);
   if(ErrorCode != PNIO_OK)
@@ -1522,7 +1582,12 @@ CLEAN_UP:
     printf("Error in stopping the device. Error# 0x%x\n", ErrorCode);
     exit(1);
   }
-    
+  
+  //wait for OFFLINE_IND_flag to be set by PNIO_cbf_ar_offline_ind() callback
+  do{
+    usleep(100000);
+  }while(OFFLINE_IND_flag == 0);
+  
   //Remove the modules and submodules
   RemoveModSubMod();
   
