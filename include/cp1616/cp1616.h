@@ -69,6 +69,8 @@ public:
     void printOutputData(unsigned int module);
     void printInputData(unsigned int module);
 
+    int CpReady;    //CP ready for communication flag
+
 private:
 
     //Callback functions required by IO Base library
@@ -81,7 +83,7 @@ private:
     static void callback_for_cp_stop_req(PNIO_CBE_PRM *pCbfPrm);
 
     //CP variables
-    int CpReady;
+
     int SemModChange;
     PNIO_UINT32 CpId;
     PNIO_UINT32 CpHandle;

@@ -153,7 +153,7 @@ cp1616_io_controller::init()
     PNIO_UINT32 ErrorCode = PNIO_OK;
 
     //-------------------------------------------------------------------------
-    //Prepare 2D array for registered input modules data
+    //Prepare 2D array for registered input modules
     //-------------------------------------------------------------------------
     if(deviceInputCount > 0)    //if any input module available
     {
@@ -161,7 +161,7 @@ cp1616_io_controller::init()
         InModuleData = new PNIO_UINT8 [totalInputSize * sizeof(PNIO_UINT8)];
         InData       = new PNIO_UINT8* [deviceInputCount * sizeof(PNIO_UINT8)];
 
-        //Set initial Input values to zero
+        //Set initial InpData values to zero
         memset(InModuleData, 0, totalInputSize);
 
         unsigned int p1, p2;
@@ -173,7 +173,7 @@ cp1616_io_controller::init()
             p1 += deviceInputLength[p2++];
         }
 
-        //Print Input data structure
+        //Print InData array information
         std::cout << std::endl << "Input Data Array: [Total size: " << totalInputSize << " bytes]" << std::endl;;
         for(int i = 0; i < deviceInputCount; i++)
         {
@@ -186,7 +186,7 @@ cp1616_io_controller::init()
     }
 
     //-------------------------------------------------------------------------
-    //Prepare 2D array for for registered output modules data
+    //Prepare 2D array for for registered output modules
     //-------------------------------------------------------------------------
     if(deviceOutputCount > 0)    //if any output module available
     {
@@ -194,7 +194,7 @@ cp1616_io_controller::init()
         OutModuleData = new PNIO_UINT8 [totalOutputSize * sizeof(PNIO_UINT8)];
         OutData       = new PNIO_UINT8* [deviceOutputCount * sizeof(PNIO_UINT8)];
 
-        //Set initial Output values to zero
+        //Set initial OutData values to zero
         memset(OutModuleData, 0, totalOutputSize);
 
         unsigned int p1, p2;
@@ -206,7 +206,7 @@ cp1616_io_controller::init()
             p1 += deviceOutputLength[p2++];
         }
 
-        //Print Output data structure
+        //Print OutData array information
         std::cout << std::endl << "Output Data Array: [Total size: " << totalOutputSize << " bytes]" << std::endl;;
         for(int i = 0; i < deviceOutputCount; i++)
         {
@@ -665,48 +665,57 @@ int main(int argc, char **argv)
     //Initialize CP
     cp1616.init();
 
-    PNIO_UINT8 DO_value = 1;
-    PNIO_UINT32 ErrorCode = PNIO_OK;
-
-    //Shift values
-    for(int i = 0; i < 20; i++)
+    if(cp1616.CpReady != 0)
     {
-        for(int j = 0; j < 7; j++)
-        {
-            //Write Output data
-            DO_value = DO_value << 1;
-            cp1616.setOutData(0,0,DO_value);
-            cp1616.printOutputData(0);
-            cp1616.printOutputData(1);
-            cp1616.printOutputData(2);
-            cp1616.printOutputData(3);
-            cp1616.printInputData(0);
-            cp1616.printInputData(1);
-            cp1616.printInputData(2);
-            cp1616.printInputData(3);
-            ErrorCode = cp1616.updateCyclicOutputData();
-            if(ErrorCode != PNIO_OK)
-                printf("Error 0x%x\n", (int)ErrorCode);
-            usleep(100000);
-        }
+        PNIO_UINT8 DO_value = 1;
+        PNIO_UINT32 ErrorCode = PNIO_OK;
 
-        for(int j = 0; j < 7; j++)
+        //Shift values
+        for(int i = 0; i < 20; i++)
         {
-            //Write Output data
-            DO_value = DO_value >> 1;
-            cp1616.setOutData(0,0,DO_value);
-            cp1616.printOutputData(0);
-            cp1616.printOutputData(1);
-            cp1616.printOutputData(2);
-            cp1616.printOutputData(3);
-            cp1616.printInputData(0);
-            cp1616.printInputData(1);
-            cp1616.printInputData(2);
-            cp1616.printInputData(3);
-            ErrorCode = cp1616.updateCyclicOutputData();
-            if(ErrorCode != PNIO_OK)
-                printf("Error 0x%x\n", (int)ErrorCode);
-            usleep(100000);
+            for(int j = 0; j < 7; j++)
+            {
+                //Shift Output data
+                DO_value = DO_value << 1;
+                cp1616.setOutData(0,0,DO_value);
+
+                //Print OutData, InData
+                cp1616.printOutputData(0);
+                cp1616.printOutputData(1);
+                cp1616.printOutputData(2);
+                cp1616.printOutputData(3);
+                cp1616.printInputData(0);
+                cp1616.printInputData(1);
+                cp1616.printInputData(2);
+                cp1616.printInputData(3);
+
+                ErrorCode = cp1616.updateCyclicOutputData();
+                if(ErrorCode != PNIO_OK)
+                    printf("Error 0x%x\n", (int)ErrorCode);
+                usleep(100000);
+            }
+
+            for(int j = 0; j < 7; j++)
+            {
+                //Shift Output data
+                DO_value = DO_value >> 1;
+                cp1616.setOutData(0,0,DO_value);
+
+                //Print OutData, InData
+                cp1616.printOutputData(0);
+                cp1616.printOutputData(1);
+                cp1616.printOutputData(2);
+                cp1616.printOutputData(3);
+                cp1616.printInputData(0);
+                cp1616.printInputData(1);
+                cp1616.printInputData(2);
+                cp1616.printInputData(3);
+
+                ErrorCode = cp1616.updateCyclicOutputData();
+                if(ErrorCode != PNIO_OK)
+                    printf("Error 0x%x\n", (int)ErrorCode);
+                usleep(100000);
+            }
         }
     }
 
