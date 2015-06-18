@@ -12,8 +12,7 @@
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
   <!-- <url type="website">http://wiki.ros.org/cp1616</url> -->
- 
- 
+  
   <buildtool_depend>catkin</buildtool_depend>
   
   <build_depend>roscpp</build_depend>

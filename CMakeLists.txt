@@ -22,8 +22,6 @@ catkin_package(
   CATKIN_DEPENDS roscpp 
   LIBRARIES
   roscpp
-
-  
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
