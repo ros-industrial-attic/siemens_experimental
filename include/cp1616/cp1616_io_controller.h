@@ -47,6 +47,19 @@ private:
 
 };
 
+//Singleton patern
+class Cp1616CallbackHandler
+{
+public:
+    static Cp1616CallbackHandler* getInstance();
+    ~Cp1616CallbackHandler();
+
+private:
+    static bool instance_flag_;
+    static Cp1616CallbackHandler *instance_;
+    Cp1616CallbackHandler();
+};
+
 /**
  * \brief This class defines ROS-Profinet IO Controller implementation for communication processor Siemens CP1616
 
@@ -194,12 +207,12 @@ private:
   /**
    * brief CP current mode (see PGH_IO-Base_76.pdf )
    */
-          volatile PNIO_MODE_TYPE cp_current_mode_;
+          /*volatile*/ PNIO_MODE_TYPE cp_current_mode_;
 
   /**
    * brief CP local state obtained by PNIO_data_write/PNIO_data_read functions
    */
-          volatile PNIO_IOXS      cp_local_state_;
+          /*volatile*/ PNIO_IOXS      cp_local_state_;
 
   /**
    * brief counter of active input modules
@@ -214,7 +227,7 @@ private:
   /**
    * brief array of device input states
    */
-          PNIO_IOXS volatile* volatile device_input_state_;
+          PNIO_IOXS /*volatile* volatile*/ *device_input_state_;
 
   /**
    * brief array of device input addresses
@@ -235,7 +248,7 @@ private:
   /**
    * brief array of device output states
    */
-          PNIO_IOXS volatile* volatile device_output_state_;
+          PNIO_IOXS /*volatile* volatile*/ *device_output_state_;
 
   /**
    * brief array of device output addresses

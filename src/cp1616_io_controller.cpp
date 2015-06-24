@@ -21,6 +21,29 @@
 
 #include <cp1616/cp1616_io_controller.h>
 
+bool Cp1616CallbackHandler::instance_flag_ = false;
+Cp1616CallbackHandler* Cp1616CallbackHandler::instance_ = NULL;
+
+Cp1616CallbackHandler* Cp1616CallbackHandler::getInstance()
+{
+    if(! instance_flag_)
+    {
+        instance_ = new Cp1616CallbackHandler();
+        instance_flag_ = true;
+        return instance_;
+    }
+    else
+    {
+        return instance_;
+    }
+}
+
+Cp1616CallbackHandler::Cp1616CallbackHandler()
+{
+
+}
+
+
 Cp1616IOController::Cp1616IOController() :
   cp_ready_(0),
   sem_mod_change_(0),
@@ -35,12 +58,12 @@ Cp1616IOController::Cp1616IOController() :
 {
   //Allocate memory for Input module
   device_input_length_  = new PNIO_UINT32 [NUM_OF_INPUT_MODULES * sizeof(PNIO_UINT32)];
-  device_input_state_   = new PNIO_IOXS volatile [NUM_OF_INPUT_MODULES * sizeof(PNIO_IOXS)];
+  device_input_state_   = new PNIO_IOXS /*volatile*/ [NUM_OF_INPUT_MODULES * sizeof(PNIO_IOXS)];
   device_input_address_ = new PNIO_ADDR [NUM_OF_INPUT_MODULES * sizeof(PNIO_ADDR)];
 
   //Allocate memory for Output module
   device_output_length_  = new PNIO_UINT32 [NUM_OF_OUTPUT_MODULES * sizeof(PNIO_UINT32)];
-  device_output_state_   = new PNIO_IOXS volatile [NUM_OF_OUTPUT_MODULES * sizeof(PNIO_IOXS)];
+  device_output_state_   = new PNIO_IOXS /*volatile*/ [NUM_OF_OUTPUT_MODULES * sizeof(PNIO_IOXS)];
   device_output_address_ = new PNIO_ADDR [NUM_OF_OUTPUT_MODULES * sizeof(PNIO_ADDR)];
 }
 
@@ -578,7 +601,7 @@ void Cp1616IOController::callbackForModeChangeIndication(PNIO_CBE_PRM *pCbfPrm)
 
 void Cp1616IOController::callbackForAlarmIndication(PNIO_CBE_PRM *pCbfPrm)
 {
-  //Create CallbackHandler object to access cp1616_io_controller variables from static member function
+  //Create CallbackHandler object to access cp1616_io_controller variables
   Cp1616IOController* CallbackHandler = (Cp1616IOController*)cp1616_object;
 
   if(pCbfPrm->CbeType==PNIO_CBE_ALARM_IND) /* Check callback type */
@@ -669,6 +692,10 @@ int main(int argc, char **argv)
 
   Cp1616IOController cp1616;
   cp1616_object = (void *) &cp1616;  //assign global variable to handle callbacks
+
+  Cp1616CallbackHandler *handler;
+  //Singleton: how to initialize it to point to &cp1616?
+
 
   //Add IO modules
   cp1616.addOutputModule(4,4116);
