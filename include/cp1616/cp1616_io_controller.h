@@ -1,7 +1,7 @@
 /*********************************************************************************************//**
-* @file ros_profinet_experimental_lib.h
+* @file cp1616_io_controller.h
 * 
-* ros_profinet_experimental header 
+* cp1616_io_controller header 
 * 
 * Copyright {2015} {Frantisek Durovsky}
 * 
