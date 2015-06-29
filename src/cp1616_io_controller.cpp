@@ -1,7 +1,7 @@
 /*********************************************************************************************//**
-* @file cp1616.cpp
+* @file cp1616_io_controller.cpp
 * 
-* Main cp1616 node
+* cp1616_io_controller class
 * 
 * Copyright {2015} {Frantisek Durovsky}
 * 
@@ -18,31 +18,22 @@
 *  limitations under the License.
    
 * *********************************************************************************************/
+#ifndef CP1616_IO_CONTROLLER_CPP
+#define CP1616_IO_CONTROLLER_CPP
 
 #include <cp1616/cp1616_io_controller.h>
+#include <cp1616/cp1616_io_controller_callbacks.h>
 
-bool Cp1616CallbackHandler::instance_flag_ = false;
-Cp1616CallbackHandler* Cp1616CallbackHandler::instance_ = NULL;
+Cp1616IOController *Cp1616IOController::controller_instance_ = 0;
 
-Cp1616CallbackHandler* Cp1616CallbackHandler::getInstance()
+Cp1616IOController* Cp1616IOController::getControllerInstance()
 {
-    if(! instance_flag_)
-    {
-        instance_ = new Cp1616CallbackHandler();
-        instance_flag_ = true;
-        return instance_;
-    }
-    else
-    {
-        return instance_;
-    }
+  if( !controller_instance_ )
+  {
+    controller_instance_ = new Cp1616IOController();
+  }
+  return controller_instance_;
 }
-
-Cp1616CallbackHandler::Cp1616CallbackHandler()
-{
-
-}
-
 
 Cp1616IOController::Cp1616IOController() :
   cp_ready_(0),
@@ -67,11 +58,6 @@ Cp1616IOController::Cp1616IOController() :
   device_output_address_ = new PNIO_ADDR [NUM_OF_OUTPUT_MODULES * sizeof(PNIO_ADDR)];
 }
 
-
-
-
-
-
 Cp1616IOController::~Cp1616IOController()
 {
   if(device_input_count_ > 0)
@@ -95,96 +81,10 @@ Cp1616IOController::~Cp1616IOController()
   delete device_output_address_;
 }
 
-
-
-
-
-
-int Cp1616IOController::addInputModule(unsigned int input_size, unsigned int input_start_address)
+void Cp1616IOController::configureControllerData()
 {
-  if(cp_current_mode_ == PNIO_MODE_OPERATE)
-  {
-    ROS_ERROR_STREAM("Not able to add Input module in Operate state!");
-    return -1;
-  }
-  else if(device_input_count_ >= NUM_OF_INPUT_MODULES)
-  {
-    ROS_ERROR_STREAM("Not able to add antoher input module. Max count reached!");
-    return -1;
-  }
-  else
-  {
-    //Set variables required for PNIO_data_read function
-    device_input_length_[device_input_count_] = input_size;                      //number of transferred bytes
-    device_input_state_[device_input_count_]  = PNIO_S_BAD;                      //initial Input State
-    device_input_address_[device_input_count_].AddrType = PNIO_ADDR_LOG;         //Address type
-    device_input_address_[device_input_count_].IODataType = PNIO_IO_IN;          //Data type
-    device_input_address_[device_input_count_].u.Addr = input_start_address;     //Module memory address
-
-    #if DEBUG
-      ROS_INFO("Input module: Size: %d I: %d - %d",
-        device_input_length_[device_input_count_],
-        device_input_address_[device_input_count_].u.Addr,
-        device_input_address_[device_input_count_].u.Addr + device_input_length_[device_input_count_] - 1);
-    #endif
-    device_input_count_++;             //increment deviceInputCount
-    total_input_size_ += input_size;   //save overall Input Size
-
-    return 0;
-  }
-}
-
-
-
-
-
-
-int Cp1616IOController::addOutputModule(unsigned int output_size, unsigned int output_start_address)
-{
-  if(cp_current_mode_ == PNIO_MODE_OPERATE)
-  {
-    ROS_ERROR_STREAM("Error: not able to add Output module in Operate state!");
-    return -1;
-  }
-  else if(device_output_count_ >= NUM_OF_INPUT_MODULES)
-  {
-    ROS_ERROR_STREAM("Error: Not able to add antoher module. Max count reached!");
-    return -1;
-  }
-  else
-  {
-    //Set variables required for PNIO_data_write function
-    device_output_length_[device_output_count_] = output_size;                   //number of transferred bytes
-    device_output_state_[device_output_count_]  = PNIO_S_BAD;                    //initial Input State
-    device_output_address_[device_output_count_].AddrType = PNIO_ADDR_LOG;       //Address type
-    device_output_address_[device_output_count_].IODataType = PNIO_IO_OUT;       //Data type
-    device_output_address_[device_output_count_].u.Addr = output_start_address;  //Module memory address
-
-    #if DEBUG
-      ROS_INFO("Output module: Size: %d Q: %d - %d",
-        device_output_length_[device_output_count_],
-        device_output_address_[device_output_count_].u.Addr,
-        device_output_address_[device_output_count_].u.Addr + device_output_length_[device_output_count_] - 1);
-    #endif
-
-    device_output_count_++;                  //increment deviceOutputCount
-    total_output_size_ += output_size;       //save overall Output Size
-
-    return 0;
-  }
-}
-
-
-
-
-
-
-int Cp1616IOController::init()
-{
-  PNIO_UINT32 error_code = PNIO_OK;
-
   //-------------------------------------------------------------------------
-  //Prepare 2D array for registered input modules
+  //Allocate memory registered input modules
   //-------------------------------------------------------------------------
   if(device_input_count_ > 0)    //if any input module available
   {
@@ -225,7 +125,7 @@ int Cp1616IOController::init()
   }
 
   //-------------------------------------------------------------------------
-  //Prepare 2D array for for registered output modules
+  //Allocate memory for registered output modules
   //-------------------------------------------------------------------------
   if(device_output_count_ > 0)    //if any output module available
   {
@@ -264,6 +164,85 @@ int Cp1616IOController::init()
       }
     }
   }
+}
+
+int Cp1616IOController::addInputModule(unsigned int input_size, unsigned int input_start_address)
+{
+  if(cp_current_mode_ == PNIO_MODE_OPERATE)
+  {
+    ROS_ERROR_STREAM("Not able to add Input module in Operate state!");
+    return -1;
+  }
+  else if(device_input_count_ >= NUM_OF_INPUT_MODULES)
+  {
+    ROS_ERROR_STREAM("Not able to add antoher input module. Max count reached!");
+    return -1;
+  }
+  else
+  {
+    //Set variables required for PNIO_data_read function
+    device_input_length_[device_input_count_] = input_size;                      //number of transferred bytes
+    device_input_state_[device_input_count_]  = PNIO_S_BAD;                      //initial Input State
+    device_input_address_[device_input_count_].AddrType = PNIO_ADDR_LOG;         //Address type
+    device_input_address_[device_input_count_].IODataType = PNIO_IO_IN;          //Data type
+    device_input_address_[device_input_count_].u.Addr = input_start_address;     //Module memory address
+
+    #if DEBUG
+      ROS_INFO("Input module: Size: %d I: %d - %d",
+        device_input_length_[device_input_count_],
+        device_input_address_[device_input_count_].u.Addr,
+        device_input_address_[device_input_count_].u.Addr + device_input_length_[device_input_count_] - 1);
+    #endif
+    device_input_count_++;             //increment deviceInputCount
+    total_input_size_ += input_size;   //save overall Input Size
+
+    return 0;
+  }
+}
+
+int Cp1616IOController::addOutputModule(unsigned int output_size, unsigned int output_start_address)
+{
+  if(cp_current_mode_ == PNIO_MODE_OPERATE)
+  {
+    ROS_ERROR_STREAM("Error: not able to add Output module in Operate state!");
+    return -1;
+  }
+  else if(device_output_count_ >= NUM_OF_INPUT_MODULES)
+  {
+    ROS_ERROR_STREAM("Error: Not able to add antoher module. Max count reached!");
+    return -1;
+  }
+  else
+  {
+    //Set variables required for PNIO_data_write function
+    device_output_length_[device_output_count_] = output_size;                   //number of transferred bytes
+    device_output_state_[device_output_count_]  = PNIO_S_BAD;                    //initial Input State
+    device_output_address_[device_output_count_].AddrType = PNIO_ADDR_LOG;       //Address type
+    device_output_address_[device_output_count_].IODataType = PNIO_IO_OUT;       //Data type
+    device_output_address_[device_output_count_].u.Addr = output_start_address;  //Module memory address
+
+    #if DEBUG
+      ROS_INFO("Output module: Size: %d Q: %d - %d",
+        device_output_length_[device_output_count_],
+        device_output_address_[device_output_count_].u.Addr,
+        device_output_address_[device_output_count_].u.Addr + device_output_length_[device_output_count_] - 1);
+    #endif
+
+    device_output_count_++;                  //increment deviceOutputCount
+    total_output_size_ += output_size;       //save overall Output Size
+
+    return 0;
+  }
+}
+
+int Cp1616IOController::init()
+{
+  PNIO_UINT32 error_code = PNIO_OK;
+
+  //-------------------------------------------------------------------------
+  //Configure Controller Data
+  //-------------------------------------------------------------------------
+  configureControllerData();
 
   //-------------------------------------------------------------------------
   //Open PNIO_Controller
@@ -273,16 +252,16 @@ int Cp1616IOController::init()
   error_code = PNIO_controller_open(
               cp_id_,
               PNIO_CEP_MODE_CTRL,
-              &Cp1616IOController::callbackForDsReadConf,
-              &Cp1616IOController::callbackForDsWriteConf,
-              &Cp1616IOController::callbackForAlarmIndication,
+              &PNIOCbfForDsReadConf,
+              &PNIOCbfForDsWriteConf,
+              &PNIOCbfForAlarmIndication,
               &cp_handle_);
 
   //Check errors
   if(error_code != PNIO_OK)
   {
     ROS_ERROR("Not able to open PNIO_controller: Error: 0x%x", (int)error_code);
-    return error_code;
+    return (int)error_code;
   }
   else
     ROS_INFO_STREAM("Openning CP1616 in IO_controller mode: done");
@@ -293,14 +272,14 @@ int Cp1616IOController::init()
   error_code = PNIO_register_cbf(
                 cp_handle_,
                 PNIO_CBE_MODE_IND,
-                &Cp1616IOController::callbackForModeChangeIndication);
+                &PNIOCbfForModeChangeIndication);
 
   //Check errors
   if(error_code != PNIO_OK)
   {
-    ROS_ERROR("Error in PNIO_register_cbf: callbackForModeChangeIndication: 0x", (int)error_code);
+    ROS_ERROR("Error in PNIO_register_cbf: callbackForModeChangeIndication: 0x%x", (int)error_code);
     PNIO_close(cp_handle_);
-    return error_code;
+    return (int)error_code;
   }
 
   //---------------------------------------------------------------------------
@@ -309,13 +288,13 @@ int Cp1616IOController::init()
   error_code = PNIO_register_cbf(
                 cp_handle_,
                 PNIO_CBE_DEV_ACT_CONF,
-                &Cp1616IOController::callbackForDeviceActivation);
+                &PNIOCbfForDeviceActivation);
 
   if(error_code != PNIO_OK)
   {
-    ROS_ERROR_STREAM("Error in PNIO_register_cbf: callbackForDeviceActivation: 0x" << (int)error_code);
+    ROS_ERROR_STREAM("Error in PNIO_register_cbf: callbackForDeviceActivation: 0x%x" << (int)error_code);
     PNIO_close(cp_handle_);
-    return error_code;
+    return (int)error_code;
   }
 
   //---------------------------------------------------------------------------
@@ -325,7 +304,7 @@ int Cp1616IOController::init()
   if(error_code != PNIO_OK)
   {
       PNIO_close(cp_handle_);
-      return error_code;
+      return (int)error_code;
   }
 
   //---------------------------------------------------------------------------
@@ -343,15 +322,8 @@ int Cp1616IOController::init()
       return -1;
     }
   }
-
-  //if everything ok
-  return 0;
+  return (int)error_code;  //if everything OK return PNIO_OK
 }
-
-
-
-
-
 
 int Cp1616IOController::uinit()
 {
@@ -362,29 +334,20 @@ int Cp1616IOController::uinit()
   if(error_code != PNIO_OK)
   {
       PNIO_close(cp_handle_);
-      return(error_code);
+      return (int)error_code;
   }
 
   error_code = PNIO_close(cp_handle_);
 
   if(error_code != PNIO_OK)
-  {
     ROS_ERROR_STREAM("Not able to uninitialize IO_Controller: Error 0x%x" << (int)error_code);
-    return error_code;
-  }
   else
-  {
     ROS_INFO_STREAM("Uninitializing IO_Controller: done");
-    return 0;
-  }
+
+  return (int)error_code;  //if everything OK return PNIO_OK
 }
 
-
-
-
-
-
-PNIO_UINT32 Cp1616IOController::changeAndWaitForPnioMode(PNIO_MODE_TYPE requested_mode)
+int Cp1616IOController::changeAndWaitForPnioMode(PNIO_MODE_TYPE requested_mode)
 {
   PNIO_UINT32 error_code;
   PNIO_UINT32 valid_cp_handle = cp_handle_;
@@ -395,8 +358,8 @@ PNIO_UINT32 Cp1616IOController::changeAndWaitForPnioMode(PNIO_MODE_TYPE requeste
   if(error_code != PNIO_OK)
   {
     ROS_ERROR_STREAM("Not able to change IO_Controller mode: Error 0x%x" << (int)error_code);
-    PNIO_close(cp_handle_);
-    return error_code;
+    PNIO_close(cp_handle_);     //Close PNIO_Controller
+    return (int)error_code;
   }
 
   if(cp_handle_ == valid_cp_handle)  //check if CpHandle still valid
@@ -414,21 +377,14 @@ PNIO_UINT32 Cp1616IOController::changeAndWaitForPnioMode(PNIO_MODE_TYPE requeste
   {
     ROS_ERROR_STREAM("Not able to set required mode: ERROR another mode recieved");
     PNIO_close(cp_handle_);
-    return error_code;
   }
   else
-  {
-      ROS_INFO_STREAM("Changing IO_controller mode: done");
-    return 0;
-  }
+    ROS_INFO_STREAM("Changing IO_controller mode: done");
+
+  return (int)error_code;
 }
 
-
-
-
-
-
-PNIO_UINT32 Cp1616IOController::updateCyclicInputData()
+int Cp1616IOController::updateCyclicInputData()
 {
   PNIO_UINT32 error_code;
   PNIO_UINT32 bytes_read;
@@ -448,19 +404,14 @@ PNIO_UINT32 Cp1616IOController::updateCyclicInputData()
 
     #if DEBUG
      if(error_code != PNIO_OK)
-       ROS_ERROR_STREAM("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x\n", (int)error_code);
+       ROS_ERROR_STREAM("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x", (int)error_code);
     #endif
   }
 
-  return error_code;
+  return (int)error_code;
 }
 
-
-
-
-
-
-PNIO_UINT32 Cp1616IOController::updateCyclicOutputData()
+int Cp1616IOController::updateCyclicOutputData()
 {
   PNIO_UINT32 error_code;
   unsigned int i;
@@ -477,17 +428,12 @@ PNIO_UINT32 Cp1616IOController::updateCyclicOutputData()
 
     #if DEBUG
       if(error_code != PNIO_OK)
-        ROS_ERROR_STREAM("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x\n", (int)error_code);
+        ROS_ERROR_STREAM("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x", (int)error_code);
     #endif
   }
 
-  return error_code;
+  return (int)error_code;
 }
-
-
-
-
-
 
 void Cp1616IOController::printOutputData(unsigned int module)
 {
@@ -502,13 +448,7 @@ void Cp1616IOController::printOutputData(unsigned int module)
     std::cout << std::endl;
 }
 
-
-
-
-
-
-void
-Cp1616IOController::printInputData(unsigned int module)
+void Cp1616IOController::printInputData(unsigned int module)
 {
     std::cout << "Input  m." << module << std::dec
                << " [I: " << device_input_address_[module].u.Addr
@@ -521,255 +461,50 @@ Cp1616IOController::printInputData(unsigned int module)
     std::cout << std::endl;
 }
 
-
-
-
-
-
-void
-Cp1616IOController::setOutData(unsigned int module, unsigned int data_index, PNIO_UINT8 value)
+void Cp1616IOController::setOutData(unsigned int module, unsigned int data_index, PNIO_UINT8 value)
 {
-    //Check if index argumnets correspond with OutData Array
-    if(module >= device_output_count_)
-        std::cout << "#Error: setOutData: Non exisitng item in OutData array, check module='"<< module <<"'!" << std::endl;
-    else if (data_index >= device_output_length_[module])
-        std::cout << "#Error: setOutData: Non existing item in OutData array, check data_index='" << data_index << "'!" << std::endl;
-    else
-        out_data_[module][data_index] = value;
+  //Check if index argumnets correspond with OutData Array
+  if(module >= device_output_count_)
+    ROS_WARN("setOutData: Non exisitng item in OutData array, check module=%d!", module);
+  else if (data_index >= device_output_length_[module])
+    ROS_WARN("setOutData: Non existing item in OutData array, check data_index=%d", data_index);
+  else
+    out_data_[module][data_index] = value;
 }
 
-
-
-
-
-
-void Cp1616IOController::callbackForDsReadConf(PNIO_CBE_PRM *pCbfPrm)
+void Cp1616IOController::setCpReady(int cp_ready_value)
 {
-  ROS_INFO_STREAM("CallbackForDsReadConf occured");
-}
-
-
-
-
-
-
-void Cp1616IOController::callbackForDsWriteConf(PNIO_CBE_PRM* pCbfPrm)
-{
-  ROS_INFO_STREAM("CallbackForDsWriteConf occured");
-}
-
-
-
-
-
-
-void Cp1616IOController::callbackForModeChangeIndication(PNIO_CBE_PRM *pCbfPrm)
-{
-  //Create CallbackHandler object to access cp1616_io_controller variables from static member function
-  Cp1616IOController* CallbackHandler = (Cp1616IOController*)cp1616_object;
-
-  if(pCbfPrm->CbeType == PNIO_CBE_MODE_IND) /* Check callback type */
+  if((cp_ready_value == 0) || (cp_ready_value == 1))
   {
-    switch (pCbfPrm->ModeInd.Mode)
-    {
-      case PNIO_MODE_OFFLINE:
-        ROS_INFO_STREAM("IO_controller mode change request-> OFFLINE: ");
-        CallbackHandler->cp_current_mode_ = PNIO_MODE_OFFLINE;
-        break;
-      case PNIO_MODE_CLEAR:
-        ROS_INFO_STREAM("IO_controller mode change request-> CLEAR: ");
-        CallbackHandler->cp_current_mode_ = PNIO_MODE_CLEAR;
-        break;
-      case PNIO_MODE_OPERATE:
-        ROS_INFO_STREAM("IO_controller mode change request-> OPERATE: ");
-        CallbackHandler->cp_current_mode_ = PNIO_MODE_OPERATE;
-        break;
-      default:
-        ROS_INFO_STREAM("Not able to change IO_controller mode: Wrong mode selected!");
-        break;
-    };
-
-    //send notification
-    CallbackHandler->sem_mod_change_ = 1;
+    ROS_INFO("cp_ready_ flag set to %d", cp_ready_value);
+    cp_ready_ = cp_ready_value;
   }
+  else
+    ROS_WARN("Not able to set cp_ready_ flag to %d, only 0/1 value is possible ", cp_ready_value);
 }
 
-
-
-
-
-
-void Cp1616IOController::callbackForAlarmIndication(PNIO_CBE_PRM *pCbfPrm)
+int Cp1616IOController::getCpReady()
 {
-  //Create CallbackHandler object to access cp1616_io_controller variables
-  Cp1616IOController* CallbackHandler = (Cp1616IOController*)cp1616_object;
-
-  if(pCbfPrm->CbeType==PNIO_CBE_ALARM_IND) /* Check callback type */
-  {
-    switch (pCbfPrm->AlarmInd.pAlarmData->AlarmType)
-    {
-      case PNIO_ALARM_DIAGNOSTIC:
-        ROS_WARN_STREAM("PNIO_ALARM_DIAGNOSTIC");
-        break;
-      case PNIO_ALARM_PROCESS:
-        ROS_WARN_STREAM("PNIO_ALARM_DIAGNOSTIC");
-        break;
-      case PNIO_ALARM_PULL:
-        ROS_WARN_STREAM("PNIO_ALARM_PULL");
-        break;
-      case PNIO_ALARM_PLUG:
-        ROS_WARN_STREAM("PNIO_ALARM_PLUG");
-        break;
-      case PNIO_ALARM_STATUS:
-        ROS_WARN_STREAM("PNIO_ALARM_STATUS");
-        break;
-      case PNIO_ALARM_UPDATE:
-        ROS_WARN_STREAM("PNIO_ALARM_UPDATE");
-        break;
-      case PNIO_ALARM_REDUNDANCY:
-        ROS_WARN_STREAM("PNIO_ALARM_REDUNDANCY");
-        break;
-      case PNIO_ALARM_CONTROLLED_BY_SUPERVISOR:
-        ROS_WARN_STREAM("PNIO_ALARM_CONTROLLED_BY_SUPERVISOR");
-         break;
-      case PNIO_ALARM_RELEASED_BY_SUPERVISOR:
-        ROS_WARN_STREAM("PNIO_ALARM_RELEASED_BY_SUPERVISOR");
-        break;
-      case PNIO_ALARM_PLUG_WRONG:
-        ROS_WARN_STREAM("PNIO_ALARM_PLUG_WRONG");
-        break;
-      case PNIO_ALARM_RETURN_OF_SUBMODULE:
-        ROS_WARN_STREAM("PNIO_ALARM_RETURN_OF_SUBMODULE");
-        break;
-      case PNIO_ALARM_DEV_FAILURE:
-        #if DEBUG
-          ROS_WARN_STREAM("PNIO_ALARM_DEV_FAILURE");
-        #endif
-        break;
-      case PNIO_ALARM_DEV_RETURN:
-        #ifdef DEBUG
-          ROS_WARN_STREAM("PNIO_ALARM_DEV_RETURN");
-        #endif
-        CallbackHandler->cp_ready_ = 1;	//Set CpReady flag to notify application that CP is ready for communication
-        break;
-      default:
-        ROS_WARN_STREAM("callback_for_alarm_indication called with wrong type");
-        break;
-    };
-  }
+  return (cp_ready_);
 }
 
-
-
-
-
-void Cp1616IOController::callbackForDeviceActivation(PNIO_CBE_PRM *pCbfPrm)
+void Cp1616IOController::setCpCurrentModeFlag(PNIO_MODE_TYPE mode)
 {
-    switch( pCbfPrm->DevActConf.Mode)
-    {
-        case PNIO_DA_TRUE:
-          ROS_INFO("IO_Controller - address %x was activated with result %x\n",
-            (int)pCbfPrm->DevActConf.pAddr->u.Addr,
-            (int)pCbfPrm->DevActConf.Result);
-          break;
-        case PNIO_DA_FALSE:
-          ROS_INFO("IO_Controller - address %x was deactivated with result %x\n",
-            (int)pCbfPrm->DevActConf.pAddr->u.Addr,
-            (int)pCbfPrm->DevActConf.Result);
-          break;
-    };
+  if((mode == PNIO_MODE_OFFLINE) || (mode == PNIO_MODE_CLEAR) || (mode == PNIO_MODE_OPERATE))
+    cp_current_mode_ = mode;
+  else
+    ROS_WARN("Not able to set cp_current_mode_ to %d state", (int)mode);
 }
 
-
-
-
-
-
-int main(int argc, char **argv)
+PNIO_MODE_TYPE Cp1616IOController::getCpCurrentModeFlag()
 {
-  ros::init(argc,argv, "ros_profinet_experimental");
-  ros::NodeHandle nh;
-
-  Cp1616IOController cp1616;
-  cp1616_object = (void *) &cp1616;  //assign global variable to handle callbacks
-
-  Cp1616CallbackHandler *handler;
-  //Singleton: how to initialize it to point to &cp1616?
-
-
-  //Add IO modules
-  cp1616.addOutputModule(4,4116);
-  cp1616.addOutputModule(4,4120);
-  cp1616.addOutputModule(4,4124);
-  cp1616.addOutputModule(16,4128);
-
-  cp1616.addInputModule(4,4132);
-  cp1616.addInputModule(4,4136);
-  cp1616.addInputModule(4,4140);
-  cp1616.addInputModule(16,4144);
-
-  //Initialize CP
-  cp1616.init();
-
-  if(cp1616.cp_ready_ != 0)
-  {
-    PNIO_UINT8 do_value = 1;
-    PNIO_UINT32 error_code = PNIO_OK;
-
-    //Shift values
-    for(int i = 0; i < 20; i++)
-    {
-      for(int j = 0; j < 7; j++)
-      {
-        //Shift Output data
-        do_value = do_value << 1;
-        cp1616.setOutData(0,0,do_value);
-
-        //Print OutData, InData
-        cp1616.printOutputData(0);
-        cp1616.printOutputData(1);
-        cp1616.printOutputData(2);
-        cp1616.printOutputData(3);
-        cp1616.printInputData(0);
-        cp1616.printInputData(1);
-        cp1616.printInputData(2);
-        cp1616.printInputData(3);
-
-        error_code = cp1616.updateCyclicOutputData();
-        if(error_code != PNIO_OK)
-        {
-          ROS_INFO("Not able to update output data: Error 0x%x\n", (int)error_code);
-        }
-        usleep(1000000);
-      }
-      for(int j = 0; j < 7; j++)
-      {
-        //Shift Output data
-        do_value = do_value >> 1;
-        cp1616.setOutData(0,0,do_value);
-
-        //Print OutData, InData
-        cp1616.printOutputData(0);
-        cp1616.printOutputData(1);
-        cp1616.printOutputData(2);
-        cp1616.printOutputData(3);
-        cp1616.printInputData(0);
-        cp1616.printInputData(1);
-        cp1616.printInputData(2);
-        cp1616.printInputData(3);
-
-        error_code = cp1616.updateCyclicOutputData();
-        if(error_code != PNIO_OK)
-        {
-          ROS_INFO("Not able to update input data: Error 0x%x\n", (int)error_code);
-        }
-        usleep(1000000);
-      }
-    }
-
- }
-
-    cp1616.uinit();
-
-    return(EXIT_SUCCESS);
+  return(cp_current_mode_);
 }
+
+void Cp1616IOController::setSemModChange(int mod_change)
+{
+  sem_mod_change_ = mod_change;
+}
+
+
+#endif //CP1616_IO_CONTROLLER_CPP

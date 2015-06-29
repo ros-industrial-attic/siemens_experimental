@@ -10,10 +10,17 @@ include_directories(${catkin_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/include/)
 
 
-SET(SOURCES ${PROJECT_SOURCE_DIR}/src/cp1616.cpp
-            )
+SET(SOURCES ${PROJECT_SOURCE_DIR}/src/cp1616_io_controller.cpp
+            ${PROJECT_SOURCE_DIR}/src/cp1616_io_controller_callbacks.cpp
+            ${PROJECT_SOURCE_DIR}/src/cp1616_io_device.cpp
+            ${PROJECT_SOURCE_DIR}/src/cp1616_io_device_callbacks.cpp
+            ${PROJECT_SOURCE_DIR}/src/cp1616_main.cpp
+          )
 
-SET(HEADERS ${PROJECT_SOURCE_DIR}/include/cp1616/cp1616.h
+SET(HEADERS ${PROJECT_SOURCE_DIR}/include/cp1616/cp1616_io_controller.h
+            ${PROJECT_SOURCE_DIR}/include/cp1616/cp1616_io_controller_callbacks.h
+            ${PROJECT_SOURCE_DIR}/include/cp1616/cp1616_io_device.h
+            ${PROJECT_SOURCE_DIR}/include/cp1616/cp1616_io_device_callbacks.h
 	  )
 	  
 catkin_package(
