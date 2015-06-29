@@ -51,14 +51,14 @@ public:
           ~Cp1616IOController();
 
   /**
-   * \brief Initializes and starts IOController
+   * \brief Initializes and starts IO Controller
    *
    * \return error_code if succeded (see pnioerrx.h for detailed description)
    */
           int init();
 
   /**
-   * \brief Closes and uninitializes IOController
+   * \brief Closes and uninitializes IO Controller
    *
    * \return error_code if succeded (see pnioerrx.h for detailed description)
    */

@@ -24,36 +24,36 @@
 /**
    * \brief IO Controller local mode has changed
    *
-   * \param pointer to PNIO_CBE_PRM struct
+   * \param [in]  *p_Cbf_Prm        pointer to PNIO_CBE_PRM struct
    */
-          void PNIOCbfForModeChangeIndication(PNIO_CBE_PRM *pCbfPrm);
+          void PNIOCbfForModeChangeIndication(PNIO_CBE_PRM *p_Cbf_Prm);
 
   /**
    * \brief Signals connection status to IO device
    *
-   * \param pointer to PNIO_CBE_PRM struct
+   * \param [in]  *p_Cbf_Prm        pointer to PNIO_CBE_PRM struct
    */
-          void PNIOCbfForDeviceActivation(PNIO_CBE_PRM *pCbfPrm);
+          void PNIOCbfForDeviceActivation(PNIO_CBE_PRM *p_Cbf_Prm);
 
   /**
    * \brief Alarm Indication
    *
-   * \param pointer to PNIO_CBE_PRM struct
+   * \param [in]  *p_Cbf_Prm        pointer to PNIO_CBE_PRM struct
    */
-          void PNIOCbfForAlarmIndication(PNIO_CBE_PRM *pCbfPrm);
+          void PNIOCbfForAlarmIndication(PNIO_CBE_PRM *p_Cbf_Prm);
 
   /**
    * \brief mandatory callback for PNIO_open_controller
    *
-   * \param pointer to PNIO_CBE_PRM struct
+   * \param [in]  *p_Cbf_Prm        pointer to PNIO_CBE_PRM struct
    */
-          void PNIOCbfForDsReadConf(PNIO_CBE_PRM *pCbfPrm);
+          void PNIOCbfForDsReadConf(PNIO_CBE_PRM *p_Cbf_Prm);
 
   /**
    * \brief mandatory callback for PNIO_open_controller
    *
-   * \param pointer to PNIO_CBE_PRM struct
+   * \param [in]  *p_Cbf_Prm        pointer to PNIO_CBE_PRM struct
    */
-          void PNIOCbfForDsWriteConf(PNIO_CBE_PRM *pCbfPrm);
+          void PNIOCbfForDsWriteConf(PNIO_CBE_PRM *p_Cbf_Prm);
 
 #endif //CP1616_IO_CONTROLLER_CALLBACKS_H

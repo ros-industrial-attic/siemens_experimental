@@ -23,14 +23,14 @@
 
 #include <cp1616/cp1616_io_controller.h>
 
-void PNIOCbfForModeChangeIndication(PNIO_CBE_PRM *pCbfPrm)
+void PNIOCbfForModeChangeIndication(PNIO_CBE_PRM *p_Cbf_Prm)
 {
   //Create CallbackHandler object to access cp1616_io_controller variables
   Cp1616IOController *CallbackHandler = Cp1616IOController::getControllerInstance();
 
-  if(pCbfPrm->CbeType == PNIO_CBE_MODE_IND) /* Check callback type */
+  if(p_Cbf_Prm->CbeType == PNIO_CBE_MODE_IND) /* Check callback type */
   {
-    switch (pCbfPrm->ModeInd.Mode)
+    switch (p_Cbf_Prm->ModeInd.Mode)
     {
       case PNIO_MODE_OFFLINE:
         ROS_INFO_STREAM("IO_controller mode change request-> OFFLINE: ");
@@ -54,14 +54,14 @@ void PNIOCbfForModeChangeIndication(PNIO_CBE_PRM *pCbfPrm)
   }
 }
 
-void PNIOCbfForAlarmIndication(PNIO_CBE_PRM *pCbfPrm)
+void PNIOCbfForAlarmIndication(PNIO_CBE_PRM *p_Cbf_Prm)
 {
   //Create CallbackHandler object to access cp1616_io_controller variables
   Cp1616IOController *CallbackHandler = Cp1616IOController::getControllerInstance();
 
-  if(pCbfPrm->CbeType==PNIO_CBE_ALARM_IND) /* Check callback type */
+  if(p_Cbf_Prm->CbeType==PNIO_CBE_ALARM_IND) /* Check callback type */
   {
-    switch (pCbfPrm->AlarmInd.pAlarmData->AlarmType)
+    switch (p_Cbf_Prm->AlarmInd.pAlarmData->AlarmType)
     {
       case PNIO_ALARM_DIAGNOSTIC:
         ROS_WARN_STREAM("PNIO_ALARM_DIAGNOSTIC");
@@ -114,29 +114,29 @@ void PNIOCbfForAlarmIndication(PNIO_CBE_PRM *pCbfPrm)
   }
 }
 
-void PNIOCbfForDeviceActivation(PNIO_CBE_PRM *pCbfPrm)
+void PNIOCbfForDeviceActivation(PNIO_CBE_PRM *p_Cbf_Prm)
 {
-  switch( pCbfPrm->DevActConf.Mode)
+  switch( p_Cbf_Prm->DevActConf.Mode)
   {
     case PNIO_DA_TRUE:
       ROS_INFO("IO_Controller - address %x was activated with result %x",
-        (int)pCbfPrm->DevActConf.pAddr->u.Addr,
-        (int)pCbfPrm->DevActConf.Result);
+        (int)p_Cbf_Prm->DevActConf.pAddr->u.Addr,
+        (int)p_Cbf_Prm->DevActConf.Result);
         break;
       case PNIO_DA_FALSE:
         ROS_INFO("IO_Controller - address %x was deactivated with result %x",
-        (int)pCbfPrm->DevActConf.pAddr->u.Addr,
-        (int)pCbfPrm->DevActConf.Result);
+        (int)p_Cbf_Prm->DevActConf.pAddr->u.Addr,
+        (int)p_Cbf_Prm->DevActConf.Result);
       break;
     };
 }
 
-void PNIOCbfForDsReadConf(PNIO_CBE_PRM *pCbfPrm)
+void PNIOCbfForDsReadConf(PNIO_CBE_PRM *p_Cbf_Prm)
 {
   ROS_WARN_STREAM("CallbackForDsReadConf should not occur within this implementation");
 }
 
-void PNIOCbfForDsWriteConf(PNIO_CBE_PRM* pCbfPrm)
+void PNIOCbfForDsWriteConf(PNIO_CBE_PRM *p_Cbf_Prm)
 {
   ROS_WARN_STREAM("CallbackForDsWriteConf should not occur within this implementation");
 }
