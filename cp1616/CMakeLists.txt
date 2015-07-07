@@ -3,36 +3,29 @@ project(cp1616)
 
 find_package(catkin REQUIRED COMPONENTS 
   roscpp
-  message_generation
   )
 
 include_directories(${catkin_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/include/)
 
-
-SET(SOURCES ${PROJECT_SOURCE_DIR}/src/cp1616_io_controller.cpp
-            ${PROJECT_SOURCE_DIR}/src/cp1616_io_controller_callbacks.cpp
-            ${PROJECT_SOURCE_DIR}/src/cp1616_io_device.cpp
-            ${PROJECT_SOURCE_DIR}/src/cp1616_io_device_callbacks.cpp
-            ${PROJECT_SOURCE_DIR}/src/cp1616_main.cpp
-          )
-
-SET(HEADERS ${PROJECT_SOURCE_DIR}/include/cp1616/cp1616_io_controller.h
-            ${PROJECT_SOURCE_DIR}/include/cp1616/cp1616_io_controller_callbacks.h
-            ${PROJECT_SOURCE_DIR}/include/cp1616/cp1616_io_device.h
-            ${PROJECT_SOURCE_DIR}/include/cp1616/cp1616_io_device_callbacks.h
-	  )
+ADD_LIBRARY(Cp1616RosLib
+	${PROJECT_SOURCE_DIR}/src/cp1616_io_controller.cpp
+        ${PROJECT_SOURCE_DIR}/src/cp1616_io_controller_callbacks.cpp
+        ${PROJECT_SOURCE_DIR}/src/cp1616_io_device.cpp
+        ${PROJECT_SOURCE_DIR}/src/cp1616_io_device_callbacks.cpp
+        )
 	  
 catkin_package(
-  DEPENDS
-  INCLUDE_DIRS
+  INCLUDE_DIRS include
+  LIBRARIES Cp1616RosLib
   CATKIN_DEPENDS roscpp 
-  LIBRARIES
-  roscpp
+  DEPENDS libpnoiusr libl2interface 
 )
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME} ${ROS_LIBRARIES} ${catkin_LIBRARIES}
-                      ${LD_LIBRARY_PATH}libpniousr.a ${LD_LIBRARY_PATH}libpniousr.so
-                      ${LD_LIBRARY_PATH}libl2interface.so ${LD_LIBRARY_PATH}libl2interface.a)
+add_executable(cp1616_test ${PROJECT_SOURCE_DIR}/src/cp1616_main.cpp)
+target_link_libraries(cp1616_test ${catkin_LIBRARIES} 
+                                  Cp1616RosLib
+                                  libpniousr.a
+                                  libpniousr.so
+                                  libl2interface.so 
+                                  libl2interface.a)

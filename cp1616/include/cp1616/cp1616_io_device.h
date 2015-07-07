@@ -22,13 +22,13 @@
 #define CP1616_IO_DEVICE_H
 
 //CP 1616 Annotations
-#define ANNOT_NAME       "StarterKit"      /* device type (String 25) */
-#define ANNOT_ORDERID    "6GK1 161-6AA00"  /* Order Id    (String 20) */
-#define ANNOT_HW_REV     0                 /* HwRevision  (short)     */
-#define ANNOT_SW_PREFIX  'V'               /* SwRevisionPrefix (char) */
-#define ANNOT_SW_REV_1   2                 /* SwRevision1 (short)     */
-#define ANNOT_SW_REV_2   6                 /* SwRevision2 (short)     */
-#define ANNOT_SW_REV_3   0                 /* SwRevision3 (short)     */
+#define ANNOT_NAME       "StarterKit"      // device type (String 25) 
+#define ANNOT_ORDERID    "6GK1 161-6AA00"  // Order Id    (String 20) 
+#define ANNOT_HW_REV     0                 // HwRevision  (short)     
+#define ANNOT_SW_PREFIX  'V'               // SwRevisionPrefix (char) 
+#define ANNOT_SW_REV_1   2                 // SwRevision1 (short)     
+#define ANNOT_SW_REV_2   6                 // SwRevision2 (short)     
+#define ANNOT_SW_REV_3   0                 // SwRevision3 (short)     
 
 //Known Diagnose alarms for this device
 #define CH_ERR_INVAL_LINKUP     0x0100
@@ -38,15 +38,14 @@
 #define CH_ERR_CPLUG_ERROR      0x0202
 
 //Values for PNIO_device_open
-#define NUMOF_SLOTS 		    2	       /* DAP module + 1 slot*/
-#define NUMOF_SUBSLOTS          2          /* Number of subslots */
-#define NUMOF_BYTES_PER_SUBSLOT 256        /* Maximum data length as configured in the sample */
+#define NUMOF_SLOTS             2	   // DAP module + 1 slot
+#define NUMOF_SUBSLOTS          2         // Number of subslots 
+#define NUMOF_BYTES_PER_SUBSLOT 256       // Maximum data length as configured in the sample 
 #define VENDOR_ID    0x002a
 #define DEVICE_ID    0x0003
 #define INSTANCE_ID  0x0001
 
-#define DEVICE_DATA_ENTRIES 2      /* The total number of members of DEVICE_DATA structure  */
-#define MAX_COUNT 500	           /* Max counter value for PNIO_cbf_prm_end_ind() callback */
+#define DEVICE_DATA_ENTRIES     2          // The total number of members of DEVICE_DATA structure  
 
 #include <ros/ros.h>
 
@@ -55,11 +54,17 @@
 #include "pniousrd.h"
 #include "pnioerrx.h"
 
-
-struct device_data_t
+namespace cp1616
 {
-  int slot;
-  int subslot;
+
+/**
+ * \brief Structure to keep STEP7 project data required for plugging modules and submodules
+ * */
+
+struct DeviceData
+{
+  unsigned int slot;
+  unsigned int subslot;
   PNIO_UINT32 modId;
   PNIO_UINT32 subslotId;
   PNIO_UINT32 api;
@@ -268,16 +273,10 @@ public:
     */
           PNIO_UINT16 getCpArNumber();
 
-
-  /**
-   * \brief CP handle obtained by init() function
-   */
-          PNIO_UINT32 cp_handle_;
-
   /**
    * \brief pointer to device_data table that holds STEP7 configuration
    */
-          device_data_t *p_device_data_;
+          DeviceData *p_device_data_;
 
   /**
   * \brief Table of input controller data - IO Device output data
@@ -321,6 +320,11 @@ public:
 
 private:
 
+  /**
+   * \brief CP handle obtained by init() function
+   */
+          PNIO_UINT32 cp_handle_;
+  
   /**
    * \brief Private constructor
    */
@@ -375,6 +379,29 @@ private:
    * \brief table that holds indexes of IO data array for given submodules
    */
           int idx_table_[DEVICE_DATA_ENTRIES];
-};
+  
+  /**
+   * \brief const used by waiting for callbacks loops
+   */
+          static const int WAIT_FOR_CALLBACK_PERIOD = 100000;
+	  
+  /**
+   * \brief max counter value for prm_end_ind() callback
+   */
+          static const int MAX_PRM_END_COUNT = 500;
+
+  /**
+   * \brief max counter value for prm_indata_ind() callback
+   */
+          static const int MAX_INDATA_IND_COUNT = 500;
+  
+  /**
+   * \brief max counter value for ar_offline_ind() callback
+   */  
+          static const int MAX_OFFLINE_IND_COUNT = 100; 
+	 
+}; //cp1616_io_device class
+}  //cp1616
+
 
 #endif //CP1616_IO_DEVICE_H

@@ -30,7 +30,8 @@
 #define NUM_OF_INPUT_MODULES    4       //Fixed definitions for development purposes
 #define NUM_OF_OUTPUT_MODULES   4
 
-#define MAX_NUM_OF_INIT_ATTEMPTS 1000   //Number of attempts to initialize communication
+namespace cp1616
+{
 
 /**
  * \brief This class defines ROS-Profinet IO Controller implementation for communication processor Siemens CP1616
@@ -110,7 +111,7 @@ public:
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int changeAndWaitForPnioMode(PNIO_MODE_TYPE requested_mode);
+          int changePnioMode(PNIO_MODE_TYPE requested_mode);
 
   /**
    * \brief Sets IO Controller OutData
@@ -129,14 +130,14 @@ public:
           void setCpReady(int cp_ready_value);
 
   /**
-   * \brief Returns IO Controller cp_ready_ state (used in callbackForAlarmIndication)
+   * \brief Returns IO Controller cp_ready_ state (used in callback alarmIndication)
    *
    * \return cp_ready_ flag
    */
           int getCpReady();
 
   /**
-   * \brief Sets IO Controller cp_current_mode_ flag (used in callbackForModeChangeIndication)
+   * \brief Sets IO Controller cp_current_mode_ flag (used in callback modeChangeIndication)
    *
    * \param mode - current mode
    */
@@ -150,7 +151,7 @@ public:
           PNIO_MODE_TYPE getCpCurrentModeFlag();
 
   /**
-   * \brief Sets sem_mode_change_ flag (used in callbackForModeChangeIndication)
+   * \brief Sets sem_mode_change_ flag (used in callback modeChangeIndication)
    *
    * \param value
    */
@@ -173,7 +174,7 @@ private:
          static Cp1616IOController *controller_instance_;
 
   /**
-   * \brief CP ID according to TIA portal setup (default = 1)
+   * \brief CP ID according to STEP7 config (default = 1)
    */
           PNIO_UINT32 cp_id_;
 
@@ -190,15 +191,15 @@ private:
   /**
    * \brief CP current mode (see PGH_IO-Base_76.pdf )
    */
-          /*volatile*/ PNIO_MODE_TYPE cp_current_mode_;
+          volatile PNIO_MODE_TYPE cp_current_mode_;
 
    /**
    * \brief CP local state obtained by PNIO_data_write/PNIO_data_read functions
    */
-          /*volatile*/ PNIO_IOXS cp_local_state_;
+          volatile PNIO_IOXS cp_local_state_;
 
    /**
-    * \brief flag used by CallbackForModeChangeIndication
+    * \brief flag used by Callback modeChangeIndication
     */
           int sem_mod_change_;
 
@@ -215,7 +216,7 @@ private:
   /**
    * \brief array of device input states
    */
-          PNIO_IOXS /*volatile* volatile*/ *device_input_state_;
+          PNIO_IOXS volatile* volatile device_input_state_;
 
   /**
    * \brief array of device input addresses
@@ -236,7 +237,7 @@ private:
   /**
    * \brief array of device output states
    */
-          PNIO_IOXS /*volatile* volatile*/ *device_output_state_;
+          PNIO_IOXS volatile* volatile device_output_state_;
 
   /**
    * \brief array of device output addresses
@@ -272,7 +273,18 @@ private:
    * \brief total size of output data
    */
           unsigned int total_output_size_;
+ 
+  /**
+   * \brief const used in combination with usleep() function in waiting for callbacks loops
+   */
+          static const int WAIT_FOR_CALLBACKS_PERIOD = 100000;
 
-};
+  /**
+   * \brief Maximum number of initialize communication attempts
+   */
+          static const int MAX_NUM_OF_INIT_ATTEMPTS = 1000;
+
+}; //cp1616_io_controller class
+} //cp1616
 
 #endif //CP1616_IO_CONTROLLER_H

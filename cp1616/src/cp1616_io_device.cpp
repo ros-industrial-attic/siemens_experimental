@@ -24,6 +24,8 @@
 #include <cp1616/cp1616_io_device.h>
 #include <cp1616/cp1616_io_device_callbacks.h>
 
+namespace cp1616
+{
 //Define and initialize device_instance_ to zero value;
 Cp1616IODevice *Cp1616IODevice::device_instance_ = 0;
 
@@ -48,9 +50,9 @@ Cp1616IODevice::Cp1616IODevice():
     p_device_data_(NULL)
 {
 
-    p_device_data_ = new device_data_t [DEVICE_DATA_ENTRIES * sizeof(device_data_t)];
+    p_device_data_ = new DeviceData [DEVICE_DATA_ENTRIES * sizeof(DeviceData)];
 
-    //Initialize device_data_ according to STEP project setup
+    //Initialize device_data_ according to STEP7 project setup
     p_device_data_[0].slot =  1;
     p_device_data_[0].subslot = 1;
     p_device_data_[0].modId = 0x19;
@@ -100,21 +102,21 @@ int Cp1616IODevice::init()
   //Set the callback function pointers
   memset(&struct_cb_functions, 0, sizeof(PNIO_CFB_FUNCTIONS));
   struct_cb_functions.size                  = sizeof(PNIO_CFB_FUNCTIONS);
-  struct_cb_functions.cbf_data_write        = PNIOCbfForDataWrite;
-  struct_cb_functions.cbf_data_read         = PNIOCbfForDataRead;
-  struct_cb_functions.cbf_rec_read          = PNIOCbfForRecordRead;
-  struct_cb_functions.cbf_rec_write         = PNIOCbfForRecordWrite;
-  struct_cb_functions.cbf_alarm_done        = PNIOCbfForRequestDone;
-  struct_cb_functions.cbf_check_ind         = PNIOCbfForCheckIndication;
-  struct_cb_functions.cbf_ar_check_ind      = PNIOCbfForArCheckIndication;
-  struct_cb_functions.cbf_ar_info_ind       = PNIOCbfForArInfoIndication;
-  struct_cb_functions.cbf_ar_indata_ind     = PNIOCbfForArIndataIndication;
-  struct_cb_functions.cbf_ar_abort_ind      = PNIOCbfForArAbortIndication;
-  struct_cb_functions.cbf_ar_offline_ind    = PNIOCbfForArOfflineIndication;
-  struct_cb_functions.cbf_apdu_status_ind   = PNIOCbfForApduStatusIndication;
-  struct_cb_functions.cbf_prm_end_ind       = PNIOCbfForPrmEndIndication;
-  struct_cb_functions.cbf_cp_stop_req       = PNIOCbfForCpStopRequest;
-  struct_cb_functions.cbf_device_stopped    = PNIOCbfForDeviceStopped;
+  struct_cb_functions.cbf_data_write        = pnio_device_callbacks::dataWrite;
+  struct_cb_functions.cbf_data_read         = pnio_device_callbacks::dataRead;
+  struct_cb_functions.cbf_rec_read          = pnio_device_callbacks::recordRead;
+  struct_cb_functions.cbf_rec_write         = pnio_device_callbacks::recordWrite;
+  struct_cb_functions.cbf_alarm_done        = pnio_device_callbacks::requestDone;
+  struct_cb_functions.cbf_check_ind         = pnio_device_callbacks::checkIndication;
+  struct_cb_functions.cbf_ar_check_ind      = pnio_device_callbacks::arCheckIndication;
+  struct_cb_functions.cbf_ar_info_ind       = pnio_device_callbacks::arInfoIndication;
+  struct_cb_functions.cbf_ar_indata_ind     = pnio_device_callbacks::arIndataIndication;
+  struct_cb_functions.cbf_ar_abort_ind      = pnio_device_callbacks::arAbortIndication;
+  struct_cb_functions.cbf_ar_offline_ind    = pnio_device_callbacks::arOfflineIndication;
+  struct_cb_functions.cbf_apdu_status_ind   = pnio_device_callbacks::apduStatusIndication;
+  struct_cb_functions.cbf_prm_end_ind       = pnio_device_callbacks::prmEndIndication;
+  struct_cb_functions.cbf_cp_stop_req       = pnio_device_callbacks::cpStopRequest;
+  struct_cb_functions.cbf_device_stopped    = pnio_device_callbacks::deviceStopped;
   struct_cb_functions.cbf_start_led_flash   = NULL;
   struct_cb_functions.cbf_stop_led_flash    = NULL;
 
@@ -137,7 +139,7 @@ int Cp1616IODevice::init()
    else
     ROS_INFO_STREAM("Openning CP1616 in IO_device mode: done");
 
-  return error_code;  //if everything ok return PNIO_OK
+  return error_code;  //if everything ok, return PNIO_OK
 }
 
 int Cp1616IODevice::uinit()
@@ -150,7 +152,7 @@ int Cp1616IODevice::uinit()
     ROS_ERROR("Not able to uninitialize: Error 0x%x", (int) error_code);
 
   ROS_INFO_STREAM("Closing PNIO_device: done ");
-  return (int)error_code;  //if everything ok return PNIO_OK
+  return (int)error_code;  //if everything ok, return PNIO_OK
 }
 
 int Cp1616IODevice::addApi()
@@ -209,7 +211,7 @@ int Cp1616IODevice::addApi()
   }
  }
   ROS_INFO_STREAM("Adding Api profile: done");
-  return (int)error_code;  //if everything ok return PNIO_OK
+  return (int)error_code;  //if everything ok, return PNIO_OK
 }
 
 int Cp1616IODevice::removeApi()
@@ -245,7 +247,7 @@ int Cp1616IODevice::removeApi()
         ROS_INFO_STREAM("Removing Api profile: done");
     }
   }
-  return (int)error_code;  //if everything ok return PNIO_OK
+  return (int)error_code;  //if everything ok, return PNIO_OK
 }
 
 int Cp1616IODevice::addModSubMod()
@@ -257,10 +259,8 @@ int Cp1616IODevice::addModSubMod()
 
   addr.AddrType = PNIO_ADDR_GEO;    //must be PNIO_ADDR_GEO
 
-  //---------------------------------------------------
   //Add module 0
-  //---------------------------------------------------
-
+  
   addr.u.Geo.Slot    = p_device_data_[0].slot;    //plug module 0
   addr.u.Geo.Subslot = p_device_data_[0].subslot; //get the corresponding sub-slot
 
@@ -288,9 +288,7 @@ int Cp1616IODevice::addModSubMod()
     return (int)error_code;
   }
 
-  //-----------------------------------------------------
   //Add submodule corresponding to module 0
-  //-----------------------------------------------------
   error_code = PNIO_sub_plug (
                 cp_handle_,                      //device handle
                 p_device_data_[0].api,           // api number
@@ -314,12 +312,10 @@ int Cp1616IODevice::addModSubMod()
     ROS_ERROR_STREAM("ERROR: Failure in plugging the submodule corresponding to module 0"
                       << "-> no other module / submodule will be plugged...");
 
-    return (int)error_code;  //if everything ok return PNIO_OK
+    return (int)error_code;  //if everything ok, return PNIO_OK
   }
 
-  //----------------------------------------------------
   //Add all modules
-  //----------------------------------------------------
   if(NUMOF_SLOTS > 1)
   {
 
@@ -363,9 +359,7 @@ int Cp1616IODevice::addModSubMod()
 
     } //end for
 
-    //----------------------------------------------------
     //Add all submodules
-    //----------------------------------------------------
     for(i = 1; i < DEVICE_DATA_ENTRIES; i++)
     {
       if(p_device_data_[i].maxSubslots > 0)
@@ -413,7 +407,7 @@ int Cp1616IODevice::addModSubMod()
         break;
       }
     }
-  return (int)error_code; //if everything ok return PNIO_OK
+  return (int)error_code; //if everything ok, return PNIO_OK
 }
 
 int Cp1616IODevice::removeModSubMod()
@@ -431,9 +425,7 @@ int Cp1616IODevice::removeModSubMod()
       addr.u.Geo.Slot    = p_device_data_[i].slot;  //slot number
       addr.u.Geo.Subslot = p_device_data_[i].subslot;
 
-      //----------------------------------------------------
       //Remove submodules
-      //----------------------------------------------------
       error_code = PNIO_sub_pull(
                   cp_handle_,
                   p_device_data_[i].api, &addr);
@@ -453,13 +445,11 @@ int Cp1616IODevice::removeModSubMod()
 
     if(error_code == PNIO_OK && p_device_data_[i].modState == 1)
     {
-      addr.AddrType      = PNIO_ADDR_GEO;		     //must be PNIO_ADDR_GEO
-      addr.u.Geo.Slot    = p_device_data_[i].slot;   //slot number
-      addr.u.Geo.Subslot = 1;				         //doesn't matter
+      addr.AddrType      = PNIO_ADDR_GEO;                  //must be PNIO_ADDR_GEO
+      addr.u.Geo.Slot    = p_device_data_[i].slot;         //slot number
+      addr.u.Geo.Subslot = 1;                              //doesn't matter
 
-      //----------------------------------------------------
       //Remove modules
-      //----------------------------------------------------
       error_code = PNIO_mod_pull(cp_handle_, p_device_data_[i].api, &addr);
 
       if(error_code != PNIO_OK)
@@ -473,7 +463,6 @@ int Cp1616IODevice::removeModSubMod()
 
       //Notify the controller that the device state is NOT-OK every time after removing a module
       error_code = PNIO_set_dev_state(cp_handle_, PNIO_DEVSTAT_STATION_PROBLEM);
-
     }
   }
 }
@@ -498,40 +487,40 @@ int Cp1616IODevice::startOperation()
   }
 
   //Waiting for initialization callbacks
-  int callback_counter = 0;
+  unsigned int i = 0;
 
   ROS_INFO_STREAM("Waiting for callbacks...");
 
-  while(callback_counter != MAX_COUNT)
+  while(i != MAX_PRM_END_COUNT)
   {
-    //PNIOCbfProgramEndInd() callback already called?
+    //prmEndInd() callback already called?
     if(prm_end_ind_flag_ == 1)
     {
       this->doAfterPrmEndIndCbf();
       break;
     }
 
-    usleep(100000);
-    callback_counter++;
+    usleep(WAIT_FOR_CALLBACK_PERIOD);
+    i++;
   }
 
-  if(callback_counter < MAX_COUNT) //if PRM_END_IND_FLAG == 1
+  if(i < MAX_PRM_END_COUNT) //if PRM_END_IND_FLAG == 1
   {
-    callback_counter = 0;
-    while(callback_counter != MAX_COUNT)
+    i = 0;
+    while(i != MAX_INDATA_IND_COUNT)
     {
-      //PNIOCbfIndataInd() callback already called?
+      //indataInd() callback already called?
       if(indata_ind_flag_ == 1)
       {
         this->doAfterIndataIndCbf();
         break;
       }
 
-      usleep(100000);
-      callback_counter++;
+      usleep(WAIT_FOR_CALLBACK_PERIOD);
+      i++;
     }
 
-    if(callback_counter == MAX_COUNT)
+    if(i == MAX_INDATA_IND_COUNT)
     {
       ROS_ERROR("PNIOCbfIndataInd callback not recieved within defined period");
       error_code = -1;
@@ -558,19 +547,23 @@ int Cp1616IODevice::stopOperation()
   else
       ROS_INFO_STREAM("Stopping device operation: done");
 
-  //wait for OFFLINE_IND_flag to be set by PNIO_cbf_ar_offline_ind() callback
-    do{
-      usleep(100000);
-    }while(getOfflineIndFlag() == 0);
-
+    //wait for OFFLINE_IND_flag to be set by ar_offline_ind() callback
+    unsigned int i = 0;
+    while(i != MAX_OFFLINE_IND_COUNT)
+    {
+      if(getOfflineIndFlag() != 0)
+        break;
+            
+      usleep(WAIT_FOR_CALLBACK_PERIOD);
+      i++;
+    }
 }
-
 
 int Cp1616IODevice::GetSubmodNum(PNIO_UINT32 mod, PNIO_UINT32 sub)
 {
   int i,j;
 
-  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)		//Look for module index
+  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)      //Look for module index
   {
     if((int)mod == idx_table_[i])
     break;
@@ -617,9 +610,9 @@ void Cp1616IODevice::configureDeviceData()
     }
     else
     {
-      begin_new_slot = i;		                        //index corresponding to the beginning of the new slots
-      p_device_data_[begin_new_slot].maxSubslots = 1;   //every new module/slot has min one sub-slot
-      idx_table_[idx++] = p_device_data_[i].slot;		//store the entry of the new slot in idxTbl
+      begin_new_slot = i;		                       //index corresponding to the beginning of the new slots
+      p_device_data_[begin_new_slot].maxSubslots = 1;         //every new module/slot has min one sub-slot
+      idx_table_[idx++] = p_device_data_[i].slot;             //store the entry of the new slot in idxTbl
     }
   }
 }
@@ -793,6 +786,6 @@ PNIO_UINT16 Cp1616IODevice::getCpArNumber()
   return cp_ar_number_;
 }
 
-
+} //cp1616
 
 #endif

@@ -33,8 +33,8 @@ int main(int argc, char **argv)
 
 #ifdef IO_CONTROLLER_MODE
 
-  Cp1616IOController *cp1616;
-  cp1616 = Cp1616IOController::getControllerInstance();
+  cp1616::Cp1616IOController *cp1616;
+  cp1616 = cp1616::Cp1616IOController::getControllerInstance();
 
   //Add IO modules
   cp1616->addOutputModule(4,4116);
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         if(error_code != PNIO_OK)
         {
           ROS_INFO("Not able to update input data: Error 0x%x\n", (int)error_code);
-        }P
+        }
         usleep(100000);
       }
     }
@@ -113,8 +113,8 @@ int main(int argc, char **argv)
 
 #ifdef IO_DEVICE_MODE
 
-  Cp1616IODevice *cp1616;
-  cp1616 = Cp1616IODevice::getDeviceInstance();
+  cp1616::Cp1616IODevice *cp1616;
+  cp1616 = cp1616::Cp1616IODevice::getDeviceInstance();
 
   int error_code;
 
