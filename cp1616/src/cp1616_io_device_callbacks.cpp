@@ -46,18 +46,18 @@ namespace pnio_device_callbacks
     ROS_DEBUG("PNIO_cbf_data_read(..., len=%u, Iops=%u) for devHandle 0x%x, slot %u, subslot %u",
       buffer_length, iops, dev_handle, slot_num, subslot_num);
 
-    CallbackHandler->out_data_len_[slot_num][subslot_num] = buffer_length;  //save data length (only for debugging)
-    CallbackHandler->out_data_iops_[slot_num][subslot_num] = iops;	      //provider status (of remote IO controller)
+    CallbackHandler->setOutputDataLength(slot_num, subslot_num, buffer_length);  //save data length (only for debugging)
+    CallbackHandler->setOutputDataIops(slot_num, subslot_num, iops);             //provider status (of remote IO controller)
 
     if(buffer_length == 0)
     {
       ROS_INFO_STREAM(" BufLen = 0, nothing to read...");
-      CallbackHandler->out_data_iocs_[slot_num][subslot_num] = PNIO_S_GOOD;
+      CallbackHandler->setOutputDataIocs(slot_num, subslot_num, PNIO_S_GOOD);
      }
     else if(buffer_length <= (PNIO_UINT32)NUMOF_BYTES_PER_SUBSLOT)
     {
-      memcpy (&CallbackHandler->out_data_[slot_num][subslot_num][0], p_buffer, buffer_length); //Copy the data from the stack to the application buffer
-      CallbackHandler->out_data_iocs_[slot_num][subslot_num] = PNIO_S_GOOD;                    // assume everything is ok
+      memcpy (&CallbackHandler->output_data_[slot_num][subslot_num][0], p_buffer, buffer_length); //Copy the data from the stack to the application buffer
+      CallbackHandler->setOutputDataIocs(slot_num, subslot_num, PNIO_S_GOOD);                    // assume everything is ok
 
       std::cout << "OutData: [slot " << slot_num << "]: ";
       for(i = 0; i < buffer_length; i++)
@@ -65,7 +65,7 @@ namespace pnio_device_callbacks
         if(i % 16 == 0 && i!=0)
         std::cout << std::endl;
 
-        std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << (int)CallbackHandler->out_data_[slot_num][subslot_num][i] << " ";
+        std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << (int)p_buffer[i] << " ";
       }
 
       std::cout <<std::dec << std::endl;
@@ -74,10 +74,10 @@ namespace pnio_device_callbacks
     {
       ROS_ERROR("!!! PNIO_cbf_data_read: Buflen=%lu > allowed size (%u)!!! Abort reading...",
        (unsigned long)buffer_length, NUMOF_BYTES_PER_SUBSLOT);
-      CallbackHandler->out_data_iocs_[slot_num][subslot_num] = PNIO_S_BAD; // set local status to bad
+      CallbackHandler->setOutputDataIocs(slot_num, subslot_num, PNIO_S_BAD); // set local status to bad
     }
 
-  return(CallbackHandler->out_data_iocs_[slot_num][subslot_num]);		//consumer state (of local IO device)
+  return(CallbackHandler->getOutputDataIocs(slot_num, subslot_num));         //consumer state (of local IO device)
 }
 
   PNIO_IOXS dataWrite(
@@ -98,17 +98,17 @@ namespace pnio_device_callbacks
     ROS_DEBUG("PNIO_cbf_data_write(len = %u, Iocs = %u devHandle = %u, slot = %u, subslot = %u",
       buffer_length, iocs, dev_handle, slot_num, subslot_num);
   
-    CallbackHandler->in_data_len_[slot_num][subslot_num]  = buffer_length;		//save data length (only for debugging)
-    CallbackHandler->in_data_iocs_[slot_num][subslot_num] = iocs;             	//consumer status (of remote IO Controller)
+    CallbackHandler->setInputDataLength(slot_num,subslot_num,buffer_length);   //save data length (only for debugging)
+    CallbackHandler->setInputDataIocs(slot_num, subslot_num, iocs);            //consumer status (of remote IO Controller)
 
     if(buffer_length == 0)
     {
-      CallbackHandler->in_data_iops_[slot_num][subslot_num] = PNIO_S_GOOD;
+      CallbackHandler->setInputDataIops(slot_num, subslot_num, PNIO_S_GOOD);
     }
     else if (buffer_length <= (PNIO_UINT32)NUMOF_BYTES_PER_SUBSLOT)
     {
-      memcpy(p_buffer, &CallbackHandler->in_data_[slot_num][subslot_num][0], buffer_length);	//copy the application data to the stack
-      CallbackHandler->in_data_iops_[slot_num][subslot_num] = PNIO_S_GOOD;			        //assume everything is ok
+      memcpy(p_buffer, &CallbackHandler->input_data_[slot_num][subslot_num][0], buffer_length);//copy the application data to the stack
+      CallbackHandler->setInputDataIops(slot_num, subslot_num, PNIO_S_GOOD);        //assume everything is ok
 
       std::cout << "InData:  [slot " << slot_num << "]: ";
       for(i = 0; i < buffer_length; i++)
@@ -125,10 +125,10 @@ namespace pnio_device_callbacks
       ROS_ERROR("!!! PNIO_cbf_data_write: Buflen=%lu > allowed size (%u)!!! Abort writing..",
         (unsigned long)buffer_length, NUMOF_BYTES_PER_SUBSLOT);
 
-      CallbackHandler->in_data_iops_[slot_num][subslot_num] = PNIO_S_BAD; /* set local status to bad */
+      CallbackHandler->setInputDataIops(slot_num, subslot_num, PNIO_S_BAD); // set local status to bad 
     }
 
-    return(CallbackHandler->in_data_iops_[slot_num][subslot_num]);   //return local provider status
+    return(CallbackHandler->getInputDataIops(slot_num, subslot_num));       //return local provider status
 }
 
   void recordWrite(
@@ -164,9 +164,9 @@ namespace pnio_device_callbacks
     }
 
     //copy the record data into a buffer for further use
-    memcpy(write_rec_dummy_data,		//destination pointer for record data
-           p_buffer,			        //source pointer for record data
-          *p_buffer_length);			//length of the accepted data
+    memcpy(write_rec_dummy_data,  //destination pointer for record data
+           p_buffer,              //source pointer for record data
+          *p_buffer_length);      //length of the accepted data
 
     ROS_INFO_STREAM("RECORD DATA written");
 
@@ -179,12 +179,12 @@ namespace pnio_device_callbacks
     {
       *p_buffer_length = 0;
 
-      p_pnio_state->ErrCode   = 0xdf;	    //IODWrites with ErrorDecode = PNIORW
-      p_pnio_state->ErrDecode = 0x80;	    //PNIORW
-      p_pnio_state->ErrCode1  = 9;	    //example: Error Class 10 = application, ErrorNr 9 = "feature not supported"
-      p_pnio_state->ErrCode2  = 0;	    //not used in this case
-      p_pnio_state->AddValue1 = 0;	    //not used in this case
-      p_pnio_state->AddValue2  =0;	    //not used in this case
+      p_pnio_state->ErrCode   = 0xdf; //IODWrites with ErrorDecode = PNIORW
+      p_pnio_state->ErrDecode = 0x80; //PNIORW
+      p_pnio_state->ErrCode1  = 9;    //example: Error Class 10 = application, ErrorNr 9 = "feature not supported"
+      p_pnio_state->ErrCode2  = 0;    //not used in this case
+      p_pnio_state->AddValue1 = 0;    //not used in this case
+      p_pnio_state->AddValue2  =0;    //not used in this case
 
       return;
     }
@@ -224,9 +224,9 @@ namespace pnio_device_callbacks
     if(*p_buffer_length < sizeof(read_rec_dummy_data))
       ROS_WARN_STREAM("WARNING: Can not transmit all data, buffer too small...");
 
-    memcpy(p_buffer,		     	//destination pointer for write data
+    memcpy(p_buffer,              //destination pointer for write data
            read_rec_dummy_data,   //source pointer for write data
-           *p_buffer_length);		//length of transmitted data
+           *p_buffer_length);     //length of transmitted data
 
     ROS_INFO_STREAM("RECORD DATA transmitted:");
 
@@ -238,12 +238,12 @@ namespace pnio_device_callbacks
     else
     {
       *p_buffer_length=0;
-      p_pnio_state->ErrCode   = 0xde;	//IODReadRes with ErrorDecode = PNIORW
-      p_pnio_state->ErrDecode = 0x80;	//PNIORW
-      p_pnio_state->ErrCode1  = 9;	    //example: Error Class 10 = application, ErrorNr 9 = "feature not supported"
-      p_pnio_state->ErrCode2  = 0;	    //not used in this case
-      p_pnio_state->AddValue1 = 0;	    //not used in this case
-      p_pnio_state->AddValue2 = 0;	    //not used in this case
+      p_pnio_state->ErrCode   = 0xde; //IODReadRes with ErrorDecode = PNIORW
+      p_pnio_state->ErrDecode = 0x80; //PNIORW
+      p_pnio_state->ErrCode1  = 9;    //example: Error Class 10 = application, ErrorNr 9 = "feature not supported"
+      p_pnio_state->ErrCode2  = 0;    //not used in this case
+      p_pnio_state->AddValue1 = 0;    //not used in this case
+      p_pnio_state->AddValue2 = 0;    //not used in this case
       return;
     }
   }
@@ -267,7 +267,7 @@ namespace pnio_device_callbacks
     ROS_INFO("CHECK_IND slot=%u, subslot=%u, ModId=0x%x, State(%u), SubId=%u, State (%u)",
       p_addr->u.Geo.Slot, p_addr->u.Geo.Subslot, *p_mod_ident, *p_mod_state, *p_sub_ident, *p_sub_state);
 
-    /* get the index int of our configuration */
+    // get the index int of our configuration 
     idx = CallbackHandler->GetSubmodNum(p_addr->u.Geo.Slot, p_addr->u.Geo.Subslot);
 
     /* Check the configuration sent by device against the configuration_data structure.
@@ -308,7 +308,7 @@ namespace pnio_device_callbacks
     char stname[256];
     int  len = cmi_station_name_length < 256 ? cmi_station_name_length : 255;
     lc.l = host_ip;
-    strncpy(stname, (const char *)p_cmi_station_name, len);	//copy StationName to stname
+    strncpy(stname, (const char *)p_cmi_station_name, len);  //copy StationName to stname
     stname[len] = '\0';
     ROS_INFO("PNIO_cbf_ar_check_ind (Station %s, IP %d.%d.%d.%d)", stname,lc.c[0], lc.c[1], lc.c[2], lc.c[3]);
 }
@@ -328,49 +328,38 @@ namespace pnio_device_callbacks
     CallbackHandler->setCpSessionKey(session_key);    //Store the session key
 
     ROS_INFO("AR-INFO_IND new AR from PNIO controller established, SessionKey %x", session_key);
-
-    //   set all IO data in submodules to inital value = 0
-    memset (&CallbackHandler->in_data_,      0, sizeof (CallbackHandler->in_data_));        // IO data (input)
-    memset (&CallbackHandler->in_data_len_,  0, sizeof (CallbackHandler->in_data_len_));    // length of input data
-    memset (&CallbackHandler->in_data_iops_, 0, sizeof (CallbackHandler->in_data_iops_));   // local provider status
-    memset (&CallbackHandler->in_data_iocs_, 0, sizeof (CallbackHandler->in_data_iocs_));   // remote consumer status
-
-    memset (&CallbackHandler->out_data_,     0, sizeof (CallbackHandler->out_data_));       // IO data (output)
-    memset (&CallbackHandler->out_data_len_, 0, sizeof (CallbackHandler->out_data_len_));   // length of output data
-    memset (&CallbackHandler->out_data_iocs_,0, sizeof (CallbackHandler->out_data_iocs_));  // local consumer status
-    memset (&CallbackHandler->out_data_iops_,0, sizeof (CallbackHandler->out_data_iops_));  // remote provider status
-
+     
     // set local provider status preset values for all input/output slots
     // set local consumer status for all output slots
     for(i = 0; i < DEVICE_DATA_ENTRIES ; i++)
     {
       for(j = 0; j < 1 /*g_device_data[i].maxSubslots*/; j++)
       {
-        /*** set local provider state = GOOD for input data***/
+        //set local provider state = GOOD for input data
         if(i == 0) {
-            if(CallbackHandler->p_device_data_[i].modState == 1) /* plugged */
+            if(CallbackHandler->p_device_data_[i].modState == 1) // plugged 
           {
-            CallbackHandler->in_data_iops_[i][j] = PNIO_S_GOOD;
-            CallbackHandler->out_data_iocs_[i][j] = PNIO_S_GOOD;
+            CallbackHandler->setInputDataIops(i, j, PNIO_S_GOOD);
+            CallbackHandler->setOutputDataIocs(i,j,PNIO_S_GOOD);
           }
           else
           {
-            CallbackHandler->in_data_iops_[i][j] = PNIO_S_BAD;
-            CallbackHandler->out_data_iocs_[i][j] = PNIO_S_BAD;
+            CallbackHandler->setInputDataIops(i, j, PNIO_S_BAD);
+            CallbackHandler->setOutputDataIocs(i,j,PNIO_S_BAD);
           }
         }
         else
         {
           if((CallbackHandler->p_device_data_[i].modState == 1)
-              && (CallbackHandler->p_device_data_[i+j].subState == 1)) /* plugged */
+              && (CallbackHandler->p_device_data_[i+j].subState == 1)) // plugged 
           {
-            CallbackHandler->in_data_iops_[i][j] = PNIO_S_GOOD;
-            CallbackHandler->out_data_iocs_[i][j] = PNIO_S_GOOD;
+            CallbackHandler->setInputDataIops(i, j, PNIO_S_GOOD);
+            CallbackHandler->setOutputDataIocs(i,j,PNIO_S_GOOD);
           }
           else
           {
-            CallbackHandler->in_data_iops_[i][j] = PNIO_S_BAD;
-            CallbackHandler->out_data_iocs_[i][j] = PNIO_S_BAD;
+            CallbackHandler->setInputDataIops(i, j, PNIO_S_BAD);
+            CallbackHandler->setOutputDataIocs(i,j,PNIO_S_BAD);
           }
         }
       }

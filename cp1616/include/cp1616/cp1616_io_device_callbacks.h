@@ -88,7 +88,7 @@ namespace pnio_device_callbacks
     PNIO_UINT8     *p_buffer,
     PNIO_ERR_STAT  *p_pnio_state);
 
-   /**
+  /**
    * \brief This callback is called to notify that a write record request has been received from the PNIO controller
    *
    *

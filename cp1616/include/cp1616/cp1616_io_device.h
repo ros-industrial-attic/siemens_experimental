@@ -84,86 +84,87 @@ public:
   /**
    * \brief Public instance accesssor
    */
-          static Cp1616IODevice* getDeviceInstance();
+  static Cp1616IODevice* getDeviceInstance();
+
   /**
    * \brief Destructs an IOController object
    */
-          ~Cp1616IODevice();
+  ~Cp1616IODevice();
 
   /**
    * \brief Initializes and starts IO Device
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int init();
+  int init();
 
   /**
    * \brief Closes and uninitializes IO Device
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int uinit();
+  int uinit();
 
   /**
    * \brief Initializes Device data structures
    */
-          void configureDeviceData();
+  void configureDeviceData();
 
   /**
    * \brief Adds associated Api
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int addApi();
+  int addApi();
 
   /**
    * \brief Removes associated Api
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int removeApi();
+  int removeApi();
 
   /**
    * \brief Adds Modules and submodules (to mirror STEP7 configuration)
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int addModSubMod();
+  int addModSubMod();
 
   /**
    * \brief Removes existing Modules and submodules
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int removeModSubMod();
+  int removeModSubMod();
 
   /**
    * \brief Starts IO device operation
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int startOperation();
+  int startOperation();
 
   /**
    * \brief Stops IO device operation
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int stopOperation();
+  int stopOperation();
 
   /**
    * \brief Updates Output (from IO Controller perspective) data - read CP input data
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int updateCyclicOutputData();
+  int updateCyclicOutputData();
 
   /**
    * \brief Updates Input (from IO Controller perspective) data - write CP output data
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int updateCyclicInputData();
+  int updateCyclicInputData();
 
   /**
    * \brief This function is called after the PNIO_cbf_prm_end_ind callback has been
@@ -172,7 +173,7 @@ public:
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int doAfterPrmEndIndCbf();
+  int doAfterPrmEndIndCbf();
 
   /**
    * \brief This function is called after the PNIO_cbf_ar_indata_ind callback has been
@@ -180,225 +181,82 @@ public:
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int doAfterIndataIndCbf();
+  int doAfterIndataIndCbf();
 
   /**
-   * \brief This function returns the index in the IO data array for the given submodule.
-   *
-   * \return index for given submodule
+   * \brief pointer to device_data table which holds STEP7 configuration params
    */
-          int GetSubmodNum(PNIO_UINT32 mod, PNIO_UINT32 sub);
+  DeviceData *p_device_data_;
 
-  /**
-   * \brief Data encapsulation for ar_info_ind_flag_
-   *
-   * \param value
-   */
-          void setArInfoIndFlag(int value);
-
-  /**
-   * \brief Data encapsulation for ar_info_ind_flag_
-   *
-   * \return ar_info_ind_flag_
-   */
-          int  getArInfoIndFlag();
-
-  /**
-   * \brief Data encapsulation for prm_end_ind_flag_
-   *
-   * \param value
-   */
-          void setPrmEndIndFlag(int value);
-
-  /**
-   * \brief Data encapsulation for ar_info_ind_flag_
-   *
-   * \return prm_end_ind_flag_
-   */
-         int  getPrmEndIndFlag();
-
-  /**
-   * \brief Data encapsulation for indata_ind_flag_
-   *
-   * \param value
-   */
-          void setIndataIndFlag(int value);
-
-  /**
-   * \brief Data encapsulation for indata_ind_flag_
-   *
-   * \return indata_ind_flag
-   */
-          int getIndataIndFlag();
-
-  /**
-   * \brief Data encapsulation for offline_ind_flag_
-   *
-   * \param value
-   */
-          void setOfflineIndFlag(int value);
-
-  /**
-   * \brief Data encapsulation for offline_ind_flag_
-   *
-   * \return offline_ind_flag_
-   */
-          int  getOfflineIndFlag();
-
-  /**
-   * \brief Data encapsulation for cp_session_key_
-   *
-   * \param value
-   */
-          void setCpSessionKey(PNIO_UINT16 value);
-
-  /**
-   * \brief Data encapsulation for cp_session_key_
-   *
-   * \return cp_session_key_
-   */
-          PNIO_UINT16 getCpSessionKey();
-
-  /**
-   * \brief Data encapsulation for cp_ar_number_
-   *
-   * \param value
-   */
-          void setCpArNumber(PNIO_UINT16 value);
-
-   /**
-    * \brief Data encapsulation for cp_ar_number_
-    *
-    * \return cp_ar_number_
-    */
-          PNIO_UINT16 getCpArNumber();
-
-  /**
-   * \brief pointer to device_data table that holds STEP7 configuration
-   */
-          DeviceData *p_device_data_;
-
-  /**
+ /**
   * \brief Table of input controller data - IO Device output data
   */
-          PNIO_UINT8   in_data_              [NUMOF_SLOTS][NUMOF_SUBSLOTS][NUMOF_BYTES_PER_SUBSLOT];
-
-  /**
-   * \brief Table of input controller data lengths
-   */
-          PNIO_UINT32  in_data_len_          [NUMOF_SLOTS][NUMOF_SUBSLOTS];
-
-  /**
-   * \brief Table of Input controller consumer statuses
-   */
-          PNIO_IOXS    in_data_iocs_         [NUMOF_SLOTS][NUMOF_SUBSLOTS];
-
-  /**
-   * \brief Table of Input controller provider statuses
-   */
-          PNIO_IOXS    in_data_iops_         [NUMOF_SLOTS][NUMOF_SUBSLOTS];
-
+  std::vector<std::vector <std::vector<PNIO_UINT8> > > input_data_;
+         
   /**
    * \brief Table of Output controller data - IO Device input data
    */
-          PNIO_UINT8   out_data_             [NUMOF_SLOTS][NUMOF_SUBSLOTS][NUMOF_BYTES_PER_SUBSLOT];
-
-  /**
-   * \brief Table of Output controller data lengths
-   */
-          PNIO_UINT32  out_data_len_         [NUMOF_SLOTS][NUMOF_SUBSLOTS];
-
-  /**
-   * \brief Table of Output controller consumer statuses
-   */
-          PNIO_IOXS    out_data_iocs_        [NUMOF_SLOTS][NUMOF_SUBSLOTS];
-
-  /**
-   * \brief Table of Output controller provider statuses
-   */
-          PNIO_IOXS    out_data_iops_        [NUMOF_SLOTS][NUMOF_SUBSLOTS];
-
+  std::vector<std::vector<std::vector<PNIO_UINT8> > > output_data_;
+  
+  /** Data encapsulation **/
+  void setArInfoIndFlag(int value);
+  void setPrmEndIndFlag(int value);
+  void setIndataIndFlag(int value);
+  void setOfflineIndFlag(int value);
+  void setCpSessionKey(PNIO_UINT16 value);
+  void setCpArNumber(PNIO_UINT16 value);
+  void setInputDataLength(int slot_number, int subslot_number, PNIO_UINT32 value);   
+  void setOutputDataLength(int slot_number, int subslot_number, PNIO_UINT32 value);
+  void setInputDataIocs(int slot_number, int subslot_number, PNIO_IOXS status);   
+  void setOutputDataIocs(int slot_number, int subslot_number, PNIO_IOXS status);  
+  void setInputDataIops(int slot_number, int subslot_number, PNIO_IOXS status);   
+  void setOutputDataIops(int slot_number, int subslot_number, PNIO_IOXS status);    
+  
+  int getArInfoIndFlag();
+  int getPrmEndIndFlag();
+  int getIndataIndFlag();
+  int  getOfflineIndFlag();
+  PNIO_UINT16 getCpSessionKey();
+  PNIO_UINT16 getCpArNumber();
+  PNIO_UINT32 getInputDataLength(int slot_number, int subslot_number);   
+  PNIO_UINT32 getOutputDataLength(int slot_number, int subslot_number);  
+  PNIO_IOXS getInputDataIocs(int slot_number, int subslot_number);   
+  PNIO_IOXS getOutputDataIocs(int slot_number, int subslot_number); 
+  PNIO_IOXS getInputDataIops(int slot_number, int subslot_number); 
+  PNIO_IOXS getOutputDataIops(int slot_number, int subslot_number);   
+  int GetSubmodNum(PNIO_UINT32 mod, PNIO_UINT32 sub);
+  
 private:
-
-  /**
-   * \brief CP handle obtained by init() function
-   */
-          PNIO_UINT32 cp_handle_;
   
-  /**
-   * \brief Private constructor
-   */
   Cp1616IODevice();
-
-  /**
-   * \brief Static instance pointer
-   */
-         static Cp1616IODevice *device_instance_;
-
-  /**
-   * \brief CP ID according to STEP7 project configuration
-   */
-         PNIO_UINT32 cp_id_;
-
-   /**
-    * \brief number of slots according to STEP7 project configuration
-    */
-          int cp_number_of_slots_;
-
-  /**
-   * \brief callback ar_info_ind_flag_
-   */
-          int ar_info_ind_flag_;
-
-  /**
-   * \brief callback prm_end_ind_flag_
-   */
-          int prm_end_ind_flag_;
-
-  /**
-   * \brief callback indata_ind_flag_
-   */
-          int indata_ind_flag_;
-
-  /**
-   * \brief callback ind_flag_
-   */
-          int offline_ind_flag_;
-
-  /**
-   * \brief session key
-   */
-          PNIO_UINT16 cp_session_key_;
-
-  /**
-   * \brief callback application-relation number
-   */
-          PNIO_UINT16 cp_ar_number_;
-
-  /**
-   * \brief table that holds indexes of IO data array for given submodules
-   */
-          int idx_table_[DEVICE_DATA_ENTRIES];
+  static Cp1616IODevice *device_instance_;
   
-  /**
-   * \brief const used by waiting for callbacks loops
-   */
-          static const int WAIT_FOR_CALLBACK_PERIOD = 100000;
-	  
-  /**
-   * \brief max counter value for prm_end_ind() callback
-   */
-          static const int MAX_PRM_END_COUNT = 500;
+  PNIO_UINT32 cp_handle_;
+  PNIO_UINT32 cp_id_;
+  unsigned int cp_number_of_slots_;
+  unsigned int cp_max_number_of_subslots_;
 
-  /**
-   * \brief max counter value for prm_indata_ind() callback
-   */
-          static const int MAX_INDATA_IND_COUNT = 500;
+  std::vector<std::vector<PNIO_UINT32> > input_data_length_;
+  std::vector<std::vector<PNIO_IOXS> >   input_data_iocs_;
+  std::vector<std::vector<PNIO_IOXS> >   input_data_iops_;
+         
+  std::vector<std::vector<PNIO_UINT32> > output_data_length_;
+  std::vector<std::vector<PNIO_IOXS> >   output_data_iocs_;
+  std::vector<std::vector<PNIO_IOXS> >   output_data_iops_;
+                 
+  int ar_info_ind_flag_;
+  int prm_end_ind_flag_;
+  int indata_ind_flag_;
+  int offline_ind_flag_;
+  PNIO_UINT16 cp_session_key_;
+  PNIO_UINT16 cp_ar_number_;
+
+  int idx_table_[DEVICE_DATA_ENTRIES];
   
-  /**
-   * \brief max counter value for ar_offline_ind() callback
-   */  
-          static const int MAX_OFFLINE_IND_COUNT = 100; 
+  static const int WAIT_FOR_CALLBACK_PERIOD = 100000;
+  static const int MAX_PRM_END_COUNT = 500;
+  static const int MAX_INDATA_IND_COUNT = 500;
+  static const int MAX_OFFLINE_IND_COUNT = 100; 
 	 
 }; //cp1616_io_device class
 }  //cp1616

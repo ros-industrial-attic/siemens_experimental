@@ -23,34 +23,35 @@
 #include <cp1616/cp1616_io_device.h>
 #include <cp1616/cp1616_io_device_callbacks.h>
 
-//#define IO_CONTROLLER_MODE
-#define IO_DEVICE_MODE
+#define IO_CONTROLLER_MODE
+//#define IO_DEVICE_MODE
 
 int main(int argc, char **argv)
 {
-  ros::init(argc,argv, "ros_profinet_experimental");
+  ros::init(argc,argv, "cp1616");
   ros::NodeHandle nh;
+  ros::NodeHandle priv_nh_;
 
 #ifdef IO_CONTROLLER_MODE
 
-  cp1616::Cp1616IOController *cp1616;
-  cp1616 = cp1616::Cp1616IOController::getControllerInstance();
+  cp1616::Cp1616IOController *cp1616_object;
+  cp1616_object = cp1616::Cp1616IOController::getControllerInstance();
 
   //Add IO modules
-  cp1616->addOutputModule(4,4116);
-  cp1616->addOutputModule(4,4120);
-  cp1616->addOutputModule(4,4124);
-  cp1616->addOutputModule(16,4128);
+  cp1616_object->addOutputModule(4,4116);
+  cp1616_object->addOutputModule(4,4120);
+  cp1616_object->addOutputModule(4,4124);
+  cp1616_object->addOutputModule(16,4128);
 
-  cp1616->addInputModule(4,4132);
-  cp1616->addInputModule(4,4136);
-  cp1616->addInputModule(4,4140);
-  cp1616->addInputModule(16,4144);
+  cp1616_object->addInputModule(4,4132);
+  cp1616_object->addInputModule(4,4136);
+  cp1616_object->addInputModule(4,4140);
+  cp1616_object->addInputModule(16,4144);
 
   //Initialize CP
-  cp1616->init();
+  cp1616_object->init();
 
-  if(cp1616->getCpReady() != 0)
+  if(cp1616_object->getCpReady() != 0)
   {
     PNIO_UINT8 do_value = 1;
     PNIO_UINT32 error_code = PNIO_OK;
@@ -62,19 +63,19 @@ int main(int argc, char **argv)
       {
         //Shift Output data
         do_value = do_value << 1;
-        cp1616->setOutData(0,0,do_value);
+        cp1616_object->output_module_data_[0][0] = do_value;
 
         //Print OutData, InData
-        cp1616->printOutputData(0);
-        cp1616->printOutputData(1);
-        cp1616->printOutputData(2);
-        cp1616->printOutputData(3);
-        cp1616->printInputData(0);
-        cp1616->printInputData(1);
-        cp1616->printInputData(2);
-        cp1616->printInputData(3);
+        cp1616_object->printOutputData(0);
+        cp1616_object->printOutputData(1);
+        cp1616_object->printOutputData(2);
+        cp1616_object->printOutputData(3);
+        cp1616_object->printInputData(0);
+        cp1616_object->printInputData(1);
+        cp1616_object->printInputData(2);
+        cp1616_object->printInputData(3);
 
-        error_code = cp1616->updateCyclicOutputData();
+        error_code = cp1616_object->updateCyclicOutputData();
         if(error_code != PNIO_OK)
         {
           ROS_INFO("Not able to update output data: Error 0x%x\n", (int)error_code);
@@ -85,19 +86,19 @@ int main(int argc, char **argv)
       {
         //Shift Output data
         do_value = do_value >> 1;
-        cp1616->setOutData(0,0,do_value);
+        cp1616_object->output_module_data_[0][0] = do_value;
 
         //Print OutData, InData
-        cp1616->printOutputData(0);
-        cp1616->printOutputData(1);
-        cp1616->printOutputData(2);
-        cp1616->printOutputData(3);
-        cp1616->printInputData(0);
-        cp1616->printInputData(1);
-        cp1616->printInputData(2);
-        cp1616->printInputData(3);
+        cp1616_object->printOutputData(0);
+        cp1616_object->printOutputData(1);
+        cp1616_object->printOutputData(2);
+        cp1616_object->printOutputData(3);
+        cp1616_object->printInputData(0);
+        cp1616_object->printInputData(1);
+        cp1616_object->printInputData(2);
+        cp1616_object->printInputData(3);
 
-        error_code = cp1616->updateCyclicOutputData();
+        error_code = cp1616_object->updateCyclicOutputData();
         if(error_code != PNIO_OK)
         {
           ROS_INFO("Not able to update input data: Error 0x%x\n", (int)error_code);
@@ -107,23 +108,23 @@ int main(int argc, char **argv)
     }
  }
   //Uninitialize CP
-  cp1616->uinit();
+  cp1616_object->uinit();
 
 #endif
 
 #ifdef IO_DEVICE_MODE
 
-  cp1616::Cp1616IODevice *cp1616;
-  cp1616 = cp1616::Cp1616IODevice::getDeviceInstance();
+  cp1616::Cp1616IODevice *cp1616_object;
+  cp1616_object = cp1616::Cp1616IODevice::getDeviceInstance();
 
   int error_code;
 
   //Initialize CP
-  cp1616->configureDeviceData();
-  error_code = cp1616->init();
-  error_code = cp1616->addApi();
-  error_code = cp1616->addModSubMod();
-  error_code = cp1616->startOperation();
+  cp1616_object->configureDeviceData();
+  error_code = cp1616_object->init();
+  error_code = cp1616_object->addApi();
+  error_code = cp1616_object->addModSubMod();
+  error_code = cp1616_object->startOperation();
 
   if(error_code == PNIO_OK) //if CP ready for communication
   {
@@ -135,7 +136,7 @@ int main(int argc, char **argv)
     for(int i = 0; i < 30; i++)
     {
       //Output from IO Controller (PLC) perspective - input CP data
-      cp1616->updateCyclicOutputData();
+      cp1616_object->updateCyclicOutputData();
 
       //increment/decrement triangle signal
       if((raise_flag == true) && (triangle < 100))
@@ -147,10 +148,10 @@ int main(int argc, char **argv)
       if(triangle == 0)   raise_flag = true;
 
       //Write triangle value to in_data_
-      cp1616->in_data_[slot][subslot][0] = triangle;
+      cp1616_object->input_data_[slot][subslot][0] = triangle;
 
       //Input from IO Controller (PLC) perspective - output CP data
-      cp1616->updateCyclicInputData();
+      cp1616_object->updateCyclicInputData();
 
       usleep(100000);
     }
@@ -159,10 +160,10 @@ int main(int argc, char **argv)
       ROS_ERROR("CP not initialized properly: Error 0x%x", (int)error_code);
 
   //Uninitialize CP
-  cp1616->stopOperation();
-  cp1616->removeModSubMod();
-  cp1616->removeApi();
-  cp1616->uinit();
+  cp1616_object->stopOperation();
+  cp1616_object->removeModSubMod();
+  cp1616_object->removeApi();
+  cp1616_object->uinit();
 
 #endif
 

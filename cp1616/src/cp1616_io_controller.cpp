@@ -26,6 +26,7 @@
 
 namespace cp1616
 {
+//Define and initialize controller instance_ to zero value
 Cp1616IOController *Cp1616IOController::controller_instance_ = 0;
 
 Cp1616IOController* Cp1616IOController::getControllerInstance()
@@ -44,121 +45,96 @@ Cp1616IOController::Cp1616IOController() :
   cp_handle_(0),
   cp_current_mode_(PNIO_MODE_OFFLINE),
   cp_local_state_(PNIO_S_GOOD),
-  device_input_count_(0),
-  device_output_count_(0),
-  total_input_size_(0),
-  total_output_size_(0)
+  input_module_count_(0),
+  output_module_count_(0),
+  input_module_total_data_size_(0),
+  output_module_total_data_size_(0)
 {
-  //Allocate memory for Input module
-  device_input_length_  = new PNIO_UINT32 [NUM_OF_INPUT_MODULES * sizeof(PNIO_UINT32)];
-  device_input_state_   = new PNIO_IOXS volatile [NUM_OF_INPUT_MODULES * sizeof(PNIO_IOXS)];
-  device_input_address_ = new PNIO_ADDR [NUM_OF_INPUT_MODULES * sizeof(PNIO_ADDR)];
+  //Allocate memory for Input module variables
+  input_module_data_length_.resize(NUM_OF_INPUT_MODULES);
+  input_module_state_.resize(NUM_OF_INPUT_MODULES);
+  input_module_address_.resize(NUM_OF_INPUT_MODULES);
 
-  //Allocate memory for Output module
-  device_output_length_  = new PNIO_UINT32 [NUM_OF_OUTPUT_MODULES * sizeof(PNIO_UINT32)];
-  device_output_state_   = new PNIO_IOXS volatile [NUM_OF_OUTPUT_MODULES * sizeof(PNIO_IOXS)];
-  device_output_address_ = new PNIO_ADDR [NUM_OF_OUTPUT_MODULES * sizeof(PNIO_ADDR)];
+  //Allocate memory for Output module variables
+  output_module_data_length_.resize(NUM_OF_OUTPUT_MODULES);  
+  output_module_state_.resize(NUM_OF_OUTPUT_MODULES);
+  output_module_address_.resize(NUM_OF_OUTPUT_MODULES);
 }
 
 Cp1616IOController::~Cp1616IOController()
 {
-  if(device_input_count_ > 0)
-  {
-    delete in_module_data_;
-    delete in_data_;
-  }
-
-  if(device_output_count_ > 0)
-  {
-    delete out_module_data_;
-    delete out_data_;
-  }
-
-  delete device_input_length_;
-  delete device_input_state_;
-  delete device_input_address_;
-
-  delete device_output_length_;
-  delete device_output_state_;
-  delete device_output_address_;
+  
 }
 
 void Cp1616IOController::configureControllerData()
 {
   //Allocate memory registered input modules
-  if(device_input_count_ > 0)    //if any input module available
+  if(input_module_count_ > 0)    //if any input module available
   {
-    //Memory allocation
-    in_module_data_ = new PNIO_UINT8 [total_input_size_ * sizeof(PNIO_UINT8)];
-    in_data_        = new PNIO_UINT8* [device_input_count_ * sizeof(PNIO_UINT8)];
-
-    //Set initial InpData values to zero
-    memset(in_module_data_, 0, total_input_size_);
-
-    unsigned int i, j;
-
-    //Assign array pointers
-    for(i = 0, j = 0; j < device_input_count_; )
+    std::vector<PNIO_UINT8> temp;  //a temporary row
+    unsigned int i,j;
+    
+    for(i = 0; i < input_module_count_; i++)  //allocate memory for 2D array of input data (variable row size)
     {
-      in_data_[j] = &(in_module_data_[i]);
-      i += device_input_length_[j++];
+      for(j = 0; j < input_module_data_length_[input_module_count_]; j++)
+      temp.push_back(0);//fill temp row with zeros according to input_module_data_length_ values
+
+      input_module_data_.push_back(temp);  //add row to input_module_data_
+      temp.clear();                        //clear temp row
     }
+     
 
     //Print InData array information
-    ROS_INFO_STREAM("Input Data Array: [Total size: " << total_input_size_ << " bytes]");
-    for(i = 0; i < device_input_count_; i++)
+    ROS_INFO_STREAM("Input Data Array: [Total size: " << input_module_total_data_size_ << " bytes]");
+    for(i = 0; i < input_module_count_; i++)
     {
-      if((device_input_length_[i]-1) == 0)
+      if((input_module_data_length_[i]-1) == 0)
       {
-        ROS_INFO_STREAM("I: "<< device_input_address_[i].u.Addr
-          << " - " << device_input_address_[i].u.Addr + device_input_length_[i] - 1
+        ROS_INFO_STREAM("I: "<< input_module_address_[i].u.Addr
+          << " - " << input_module_address_[i].u.Addr + input_module_data_length_[i] - 1
           << ": InData  "  << "[" << i << "]" << "[0]");
       }
       else
       {
-        ROS_INFO_STREAM("I: "<< device_input_address_[i].u.Addr
-          << " - " << device_input_address_[i].u.Addr + device_input_length_[i] - 1
+        ROS_INFO_STREAM("I: "<< input_module_address_[i].u.Addr
+          << " - " << input_module_address_[i].u.Addr + input_module_data_length_[i] - 1
           << ": InData  "  << "[" << i << "]" << "[0] ... "
-          << "[" << i << "]" << "[" << device_input_length_[i]-1 << "]");
+          << "[" << i << "]" << "[" << input_module_data_length_[i]-1 << "]");
       }
     }
   }
 
   //Allocate memory for registered output modules
-  if(device_output_count_ > 0)    //if any output module available
+  if(output_module_count_ > 0)    //if any output module available
   {
-    //Memory allocation
-    out_module_data_ = new PNIO_UINT8 [total_output_size_ * sizeof(PNIO_UINT8)];
-    out_data_        = new PNIO_UINT8* [device_output_count_ * sizeof(PNIO_UINT8)];
-
-    //Set initial InpData values to zero
-    memset(out_module_data_, 0, total_output_size_);
-
-    unsigned int i, j;
-
-    //Assign array pointers
-    for(i = 0, j = 0; j < device_output_count_; )
+    std::vector<PNIO_UINT8> temp;  //a temporary row
+    unsigned int i,j;
+   
+    for(i = 0; i < output_module_count_; i++)  //allocate memory for 2D array of input data (variable row size)
     {
-      out_data_[j] = &(out_module_data_[i]);
-      i += device_output_length_[j++];
+      for(j = 0; j < output_module_data_length_[output_module_count_]; j++)
+      temp.push_back(0);    //fill temp row with zeros according to input_module_data_length_ values
+
+      output_module_data_.push_back(temp);  //add row to input_module_data_
+      temp.clear();                        //clear temp row
     }
 
     //Print OutData array information
-    ROS_INFO_STREAM("Output Data Array: [Total size: " << total_output_size_ << " bytes]");
-    for(i = 0; i < device_output_count_; i++)
+    ROS_INFO_STREAM("Output Data Array: [Total size: " << output_module_total_data_size_ << " bytes]");
+    for(i = 0; i < output_module_count_; i++)
     {
-      if((device_output_length_[i]-1) == 0)
+      if((output_module_data_length_[i]-1) == 0)
       {
-        ROS_INFO_STREAM("I: "<< device_output_address_[i].u.Addr
-          << " - " << device_output_address_[i].u.Addr + device_output_length_[i] - 1
+        ROS_INFO_STREAM("I: "<< output_module_address_[i].u.Addr
+          << " - " << output_module_address_[i].u.Addr + output_module_data_length_[i] - 1
           << ": OutData "  << "[" << i << "]" << "[0]");
       }
       else
       {
-         ROS_INFO_STREAM("I: " << device_output_address_[i].u.Addr
-           << " - " << device_output_address_[i].u.Addr + device_output_length_[i] - 1
+         ROS_INFO_STREAM("I: " << output_module_address_[i].u.Addr
+           << " - " << output_module_address_[i].u.Addr + output_module_data_length_[i] - 1
            << ": OutData "  << "[" << i << "]" << "[0] ... "
-           << "[" << i << "]" << "[" << device_output_length_[i]-1 << "]");
+           << "[" << i << "]" << "[" << output_module_data_length_[i]-1 << "]");
       }
     }
   }
@@ -171,7 +147,7 @@ int Cp1616IOController::addInputModule(unsigned int input_size, unsigned int inp
     ROS_ERROR_STREAM("Not able to add Input module in Operate state!");
     return PNIO_ERR_SEQUENCE;
   }
-  else if(device_input_count_ >= NUM_OF_INPUT_MODULES)
+  else if(input_module_count_ >= NUM_OF_INPUT_MODULES)
   {
     ROS_ERROR_STREAM("Not able to add antoher input module. Max count reached!");
     return PNIO_ERR_SEQUENCE;
@@ -179,20 +155,20 @@ int Cp1616IOController::addInputModule(unsigned int input_size, unsigned int inp
   else
   {
     //Set variables required for PNIO_data_read function
-    device_input_length_[device_input_count_] = input_size;                      //number of transferred bytes
-    device_input_state_[device_input_count_]  = PNIO_S_BAD;                      //initial Input State
-    device_input_address_[device_input_count_].AddrType = PNIO_ADDR_LOG;         //Address type
-    device_input_address_[device_input_count_].IODataType = PNIO_IO_IN;          //Data type
-    device_input_address_[device_input_count_].u.Addr = input_start_address;     //Module memory address
+    input_module_data_length_[input_module_count_] = input_size;                 //number of transferred bytes
+    input_module_state_[input_module_count_]  = PNIO_S_BAD;                      //initial Input State
+    input_module_address_[input_module_count_].AddrType = PNIO_ADDR_LOG;         //Address type
+    input_module_address_[input_module_count_].IODataType = PNIO_IO_IN;          //Data type
+    input_module_address_[input_module_count_].u.Addr = input_start_address;     //Module memory address
 
-    #if DEBUG
-      ROS_INFO("Input module: Size: %d I: %d - %d",
-        device_input_length_[device_input_count_],
-        device_input_address_[device_input_count_].u.Addr,
-        device_input_address_[device_input_count_].u.Addr + device_input_length_[device_input_count_] - 1);
-    #endif
-    device_input_count_++;             //increment deviceInputCount
-    total_input_size_ += input_size;   //save overall Input Size
+    
+    ROS_DEBUG("Input module: Size: %d I: %d - %d",
+      input_module_data_length_[input_module_count_],
+      input_module_address_[input_module_count_].u.Addr,
+      input_module_address_[input_module_count_].u.Addr + input_module_data_length_[input_module_count_] - 1);
+    
+    input_module_count_++;                         //increment deviceInputCount
+    input_module_total_data_size_ += input_size;   //save overall Input Size
 
     return PNIO_OK;
   }
@@ -205,7 +181,7 @@ int Cp1616IOController::addOutputModule(unsigned int output_size, unsigned int o
     ROS_ERROR_STREAM("Error: not able to add Output module in Operate state!");
     return PNIO_ERR_SEQUENCE;
   }
-  else if(device_output_count_ >= NUM_OF_INPUT_MODULES)
+  else if(output_module_count_ >= NUM_OF_INPUT_MODULES)
   {
     ROS_ERROR_STREAM("Error: Not able to add antoher module. Max count reached!");
     return PNIO_ERR_SEQUENCE;
@@ -213,21 +189,20 @@ int Cp1616IOController::addOutputModule(unsigned int output_size, unsigned int o
   else
   {
     //Set variables required for PNIO_data_write function
-    device_output_length_[device_output_count_] = output_size;                   //number of transferred bytes
-    device_output_state_[device_output_count_]  = PNIO_S_BAD;                    //initial Input State
-    device_output_address_[device_output_count_].AddrType = PNIO_ADDR_LOG;       //Address type
-    device_output_address_[device_output_count_].IODataType = PNIO_IO_OUT;       //Data type
-    device_output_address_[device_output_count_].u.Addr = output_start_address;  //Module memory address
+    output_module_data_length_[output_module_count_] = output_size;              //number of transferred bytes
+    output_module_state_[output_module_count_]  = PNIO_S_BAD;                    //initial Input State
+    output_module_address_[output_module_count_].AddrType = PNIO_ADDR_LOG;       //Address type
+    output_module_address_[output_module_count_].IODataType = PNIO_IO_OUT;       //Data type
+    output_module_address_[output_module_count_].u.Addr = output_start_address;  //Module memory address
 
-    #if DEBUG
-      ROS_INFO("Output module: Size: %d Q: %d - %d",
-        device_output_length_[device_output_count_],
-        device_output_address_[device_output_count_].u.Addr,
-        device_output_address_[device_output_count_].u.Addr + device_output_length_[device_output_count_] - 1);
-    #endif
-
-    device_output_count_++;                  //increment deviceOutputCount
-    total_output_size_ += output_size;       //save overall Output Size
+  
+    ROS_DEBUG("Output module: Size: %d Q: %d - %d",
+      output_module_data_length_[output_module_count_],
+      output_module_address_[output_module_count_].u.Addr,
+      output_module_address_[output_module_count_].u.Addr + output_module_data_length_[output_module_count_] - 1);
+    
+    output_module_count_++;                              //increment deviceOutputCount
+    output_module_total_data_size_ += output_size;       //save overall Output Size
 
     return PNIO_OK;
   }
@@ -377,16 +352,16 @@ int Cp1616IOController::updateCyclicInputData()
 
   unsigned int i;
 
-  for(i = 0; i < device_input_count_; i++)
+  for(i = 0; i < input_module_count_; i++)
   {
     error_code = PNIO_data_read(
                     cp_handle_,                               // handle
-                    &device_input_address_[i],                // pointer to device input address
-                    device_input_length_[i],                  // length in bytes of input
+                    &input_module_address_[i],                // pointer to device input address
+                    input_module_data_length_[i],             // length in bytes of input
                     &bytes_read,                              // number of bytes read
-                    in_data_[i],                               // pointer to input data
-                    cp_local_state_,                           // local status
-                    (PNIO_IOXS*)&(device_input_state_[i]));    // remote status
+                    &input_module_data_[i][0],                // pointer to input data row
+                    cp_local_state_,                          // local status
+                    (PNIO_IOXS*)&(input_module_state_[i]));   // remote status
 
     if(error_code != PNIO_OK)
       ROS_DEBUG("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x", (int)error_code);
@@ -401,15 +376,15 @@ int Cp1616IOController::updateCyclicOutputData()
   PNIO_UINT32 error_code;
   unsigned int i;
 
-  for(i = 0; i < device_output_count_; i++)
+  for(i = 0; i < output_module_count_; i++)
   {
     error_code = PNIO_data_write(
                     cp_handle_,                               // handle
-                    &device_output_address_[i],               // pointer to device output address
-                    device_output_length_[i],                 // length in bytes of output
-                    out_data_[i],                             // pointer to output data
+                    &output_module_address_[i],               // pointer to device output address
+                    output_module_data_length_[i],            // length in bytes of output
+                    &output_module_data_[i][0],               // pointer to output data row
                     cp_local_state_,                          // local status
-                    (PNIO_IOXS*)&(device_output_state_[i]));  // remote status
+                    (PNIO_IOXS*)&(output_module_state_[i]));  // remote status
 
     if(error_code != PNIO_OK)
         ROS_DEBUG("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x", (int)error_code);
@@ -422,12 +397,12 @@ int Cp1616IOController::updateCyclicOutputData()
 void Cp1616IOController::printOutputData(unsigned int module)
 {
     std::cout << "Output m." << module << std::dec
-              << " [Q: " << device_output_address_[module].u.Addr
-              << " - "  << device_output_address_[module].u.Addr + device_output_length_[module]-1
+              << " [Q: " << output_module_address_[module].u.Addr
+              << " - "  << output_module_address_[module].u.Addr + output_module_data_length_[module]-1
               << "]: ";
 
-    for(int i = 0; i < device_output_length_[module]; i++)
-        std::cout <<  std::setfill(' ') << std::setw(2) << std::hex << (int)out_data_[module][i] << " ";
+    for(int i = 0; i < output_module_data_length_[module]; i++)
+        std::cout <<  std::setfill(' ') << std::setw(2) << std::hex << (int)output_module_data_[module][i] << " ";
 
     std::cout << std::endl;
 }
@@ -435,25 +410,14 @@ void Cp1616IOController::printOutputData(unsigned int module)
 void Cp1616IOController::printInputData(unsigned int module)
 {
     std::cout << "Input  m." << module << std::dec
-               << " [I: " << device_input_address_[module].u.Addr
-               << " - "  << device_input_address_[module].u.Addr + device_input_length_[module]-1
+               << " [I: " << input_module_address_[module].u.Addr
+               << " - "  << input_module_address_[module].u.Addr + input_module_data_length_[module]-1
                << "]: ";
 
-    for(int i = 0; i < device_input_length_[module]; i++)
-        std::cout <<  std::setfill(' ') << std::setw(2) << std::hex << (int)in_data_[module][i] << " ";
+    for(int i = 0; i < input_module_data_length_[module]; i++)
+        std::cout <<  std::setfill(' ') << std::setw(2) << std::hex << (int)input_module_data_[module][i] << " ";
 
     std::cout << std::endl;
-}
-
-void Cp1616IOController::setOutData(unsigned int module, unsigned int data_index, PNIO_UINT8 value)
-{
-  //Check if index argumnets correspond with OutData Array
-  if(module >= device_output_count_)
-    ROS_WARN("setOutData: Non exisitng item in OutData array, check module=%d!", module);
-  else if (data_index >= device_output_length_[module])
-    ROS_WARN("setOutData: Non existing item in OutData array, check data_index=%d", data_index);
-  else
-    out_data_[module][data_index] = value;
 }
 
 void Cp1616IOController::setCpReady(int cp_ready_value)

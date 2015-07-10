@@ -73,6 +73,48 @@ Cp1616IODevice::Cp1616IODevice():
     p_device_data_[1].subState = 0;
     p_device_data_[1].dir = 0;
 
+    //Allocate memory for input/output module variables
+    cp_number_of_slots_ = NUMOF_SLOTS;
+    cp_max_number_of_subslots_ = NUMOF_SUBSLOTS;
+    
+    unsigned int i,j,k;
+    std::vector<PNIO_IOXS>   temp_ioxs;
+    std::vector<PNIO_UINT32> temp_uint32;
+    
+    for(i = 0; i < cp_number_of_slots_; i++)
+    {
+      for(j = 0; j < cp_max_number_of_subslots_; j++)
+        temp_ioxs.push_back(PNIO_S_GOOD);
+        temp_uint32.push_back(0);
+             
+      input_data_length_.push_back(temp_uint32);
+      input_data_iocs_.push_back(temp_ioxs);
+      input_data_iops_.push_back(temp_ioxs);
+      
+      output_data_length_.push_back(temp_uint32);
+      output_data_iocs_.push_back(temp_ioxs);
+      output_data_iops_.push_back(temp_ioxs);
+      
+      temp_ioxs.clear();
+      temp_uint32.clear();
+    }
+    
+    std::vector<PNIO_UINT8> temp_data_items;
+    std::vector<std::vector<PNIO_UINT8> > temp_submodules; 
+    
+    for(i = 0; i < cp_number_of_slots_; i++)
+    {
+      for(j = 0; j < cp_max_number_of_subslots_; j++)
+      {
+        for(k = 0; k < input_data_length_[i][j]; k++)
+          temp_data_items.push_back(0);	
+      
+        temp_submodules.push_back(temp_data_items);
+      }
+      input_data_.push_back(temp_submodules);
+      output_data_.push_back(temp_submodules);
+    }
+        
 }
 
 Cp1616IODevice::~Cp1616IODevice()
@@ -784,6 +826,66 @@ void Cp1616IODevice::setCpArNumber(PNIO_UINT16 value)
 PNIO_UINT16 Cp1616IODevice::getCpArNumber()
 {
   return cp_ar_number_;
+}
+
+PNIO_UINT32 Cp1616IODevice::getInputDataLength(int slot_number, int subslot_number)
+{
+  return input_data_length_[slot_number][subslot_number];  
+}
+
+void Cp1616IODevice::setInputDataLength(int slot_number, int subslot_number, PNIO_UINT32 value)
+{
+  input_data_length_[slot_number][subslot_number] = value;
+}
+
+PNIO_UINT32 Cp1616IODevice::getOutputDataLength(int slot_number, int subslot_number)
+{
+  return output_data_length_[slot_number][subslot_number];  
+}
+
+void Cp1616IODevice::setOutputDataLength(int slot_number, int subslot_number, PNIO_UINT32 value)
+{
+  output_data_length_[slot_number][subslot_number] = value;
+}
+
+PNIO_IOXS Cp1616IODevice::getInputDataIocs(int slot_number, int subslot_number)
+{
+  return input_data_iocs_[slot_number][subslot_number];  
+}
+
+void Cp1616IODevice::setInputDataIocs(int slot_number, int subslot_number, PNIO_IOXS status)
+{
+  input_data_iocs_[slot_number][subslot_number] = status;
+}
+
+PNIO_IOXS Cp1616IODevice::getOutputDataIocs(int slot_number, int subslot_number)
+{
+  return output_data_iocs_[slot_number][subslot_number];  
+}
+
+void Cp1616IODevice::setOutputDataIocs(int slot_number, int subslot_number, PNIO_IOXS status)
+{
+  output_data_iocs_[slot_number][subslot_number] = status;
+}
+
+PNIO_IOXS Cp1616IODevice::getInputDataIops(int slot_number, int subslot_number)
+{
+  return input_data_iops_[slot_number][subslot_number];  
+}
+
+void Cp1616IODevice::setInputDataIops(int slot_number, int subslot_number, PNIO_IOXS status)
+{
+  input_data_iops_[slot_number][subslot_number] = status;
+}
+
+PNIO_IOXS Cp1616IODevice::getOutputDataIops(int slot_number, int subslot_number)
+{
+  return output_data_iops_[slot_number][subslot_number];  
+}
+
+void Cp1616IODevice::setOutputDataIops(int slot_number, int subslot_number, PNIO_IOXS status)
+{
+  output_data_iops_[slot_number][subslot_number] = status;
 }
 
 } //cp1616

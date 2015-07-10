@@ -44,31 +44,31 @@ public:
   /**
    * \brief Public instance accesssor
    */
-          static Cp1616IOController* getControllerInstance();
+  static Cp1616IOController* getControllerInstance();
 
   /**
    * \brief Destructs an IOController object
    */
-          ~Cp1616IOController();
+  ~Cp1616IOController();
 
   /**
    * \brief Initializes and starts IO Controller
    *
    * \return error_code if succeded (see pnioerrx.h for detailed description)
    */
-          int init();
+  int init();
 
   /**
    * \brief Closes and uninitializes IO Controller
    *
    * \return error_code if succeded (see pnioerrx.h for detailed description)
    */
-          int uinit();
+  int uinit();
 
    /**
     * \brief Initialize Controller data structures
     */
-          void configureControllerData();
+   void configureControllerData();
 
    /**
    * \brief Adds input module to Controller data structre
@@ -78,7 +78,8 @@ public:
    *
    * \return 0 if input module added successfully
    */
-          int addInputModule(unsigned int input_size, unsigned int input_start_address);
+   int addInputModule(unsigned int input_size, unsigned int input_start_address);
+   
   /**
    * \brief Adds output module to Controller data structure
    *
@@ -87,22 +88,21 @@ public:
    *
    * \return 0 if input module added successfully
    */
-
-          int addOutputModule(unsigned int output_size, unsigned int output_start_address);
+   int addOutputModule(unsigned int output_size, unsigned int output_start_address);
 
   /**
    * \brief Reads recieved data from IO Base layer
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int updateCyclicInputData();
+  int updateCyclicInputData();
 
   /**
    * \brief Writes data to IO Base library layer for transmission
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int updateCyclicOutputData();
+  int updateCyclicOutputData();
 
   /**
    * \brief Changes IO Controller mode
@@ -111,179 +111,59 @@ public:
    *
    * \return error_code (see pnioerrx.h for detailed description)
    */
-          int changePnioMode(PNIO_MODE_TYPE requested_mode);
+  int changePnioMode(PNIO_MODE_TYPE requested_mode);
 
   /**
-   * \brief Sets IO Controller OutData
-   *
-   * \param module output module index according to addOutputModule order
-   * \param data_index index of out_data_
-   * \param value requested value
+   * \brief 2D array of input module data
    */
-          void setOutData(unsigned int module, unsigned int data_index, PNIO_UINT8 value);
-
+  std::vector<std::vector<PNIO_UINT8> > input_module_data_;  
+  
   /**
-   * \brief Sets IO Controller cp_ready_ variable
-   *
-   * \param cp_ready_value
+   * \brief 2D array of output module data
    */
-          void setCpReady(int cp_ready_value);
+  std::vector<std::vector<PNIO_UINT8> > output_module_data_;
+  
+  /** Data encapsulation **/
+  void setSemModChange(int mod_change);
+  void setCpReady(int cp_ready_value);
+  int getCpReady();
 
-  /**
-   * \brief Returns IO Controller cp_ready_ state (used in callback alarmIndication)
-   *
-   * \return cp_ready_ flag
-   */
-          int getCpReady();
-
-  /**
-   * \brief Sets IO Controller cp_current_mode_ flag (used in callback modeChangeIndication)
-   *
-   * \param mode - current mode
-   */
-          void setCpCurrentModeFlag(PNIO_MODE_TYPE mode);
-
-  /**
-   * \brief Returns IO Controller cp_current_mode_ flag
-   *
-   * \return cp_current_mode_
-   */
-          PNIO_MODE_TYPE getCpCurrentModeFlag();
-
-  /**
-   * \brief Sets sem_mode_change_ flag (used in callback modeChangeIndication)
-   *
-   * \param value
-   */
-          void setSemModChange(int mod_change);
-
+  void setCpCurrentModeFlag(PNIO_MODE_TYPE mode);
+  PNIO_MODE_TYPE getCpCurrentModeFlag();
+  
   /** Debugging functions  */
   void printOutputData(unsigned int module);
   void printInputData(unsigned int module);
 
 private:
 
-  /**
-   * \brief Constructor
-   */
-         Cp1616IOController();
+  Cp1616IOController();
+  static Cp1616IOController *controller_instance_;
 
-  /**
-   * \brief Static instance pointer
-   */
-         static Cp1616IOController *controller_instance_;
-
-  /**
-   * \brief CP ID according to STEP7 config (default = 1)
-   */
-          PNIO_UINT32 cp_id_;
-
-  /**
-   * brief CP Handle obtained by PNIO_controller_open function
-   */
-          PNIO_UINT32 cp_handle_;
-
-  /**
-   * \brief CP ready communication flag
-   */
-          int cp_ready_;
-
-  /**
-   * \brief CP current mode (see PGH_IO-Base_76.pdf )
-   */
-          volatile PNIO_MODE_TYPE cp_current_mode_;
-
-   /**
-   * \brief CP local state obtained by PNIO_data_write/PNIO_data_read functions
-   */
-          volatile PNIO_IOXS cp_local_state_;
-
-   /**
-    * \brief flag used by Callback modeChangeIndication
-    */
-          int sem_mod_change_;
-
-  /**
-   * \brief counter of active input modules
-   */
-          PNIO_UINT32 device_input_count_;
-
-  /**
-   * \brief array of input module data lenghts
-   */
-          PNIO_UINT32 *device_input_length_;
-
-  /**
-   * \brief array of device input states
-   */
-          PNIO_IOXS volatile* volatile device_input_state_;
-
-  /**
-   * \brief array of device input addresses
-   */
-          PNIO_ADDR *device_input_address_;
-
-
-  /**
-   * \brief counter of active output modules
-   */
-          PNIO_UINT32 device_output_count_;
-
-  /**
-   * \brief array of output module data lenghts
-   */
-          PNIO_UINT32 *device_output_length_;
-
-  /**
-   * \brief array of device output states
-   */
-          PNIO_IOXS volatile* volatile device_output_state_;
-
-  /**
-   * \brief array of device output addresses
-   */
-          PNIO_ADDR *device_output_address_;
-
-  /**
-   * \brief array of input module data
-   */
-          PNIO_UINT8 *in_module_data_;
-
-  /**
-   * \brief array of arrays of input module data
-   */
-          PNIO_UINT8 **in_data_;
-
-  /**
-   * \brief total size of input data
-   */
-          unsigned int total_input_size_;
-
-  /**
-   * \brief array of output module data
-   */
-          PNIO_UINT8 *out_module_data_;
-
-  /**
-   * \brief array of arrays of output module data
-   */
-          PNIO_UINT8 **out_data_;
-
-  /**
-   * \brief total size of output data
-   */
-          unsigned int total_output_size_;
+  PNIO_UINT32 cp_handle_;
+  PNIO_UINT32 cp_id_;
  
-  /**
-   * \brief const used in combination with usleep() function in waiting for callbacks loops
-   */
-          static const int WAIT_FOR_CALLBACKS_PERIOD = 100000;
-
-  /**
-   * \brief Maximum number of initialize communication attempts
-   */
-          static const int MAX_NUM_OF_INIT_ATTEMPTS = 1000;
-
+  int cp_ready_;
+  int sem_mod_change_;
+  volatile PNIO_MODE_TYPE cp_current_mode_;
+  volatile PNIO_IOXS cp_local_state_;
+   
+  PNIO_UINT32 input_module_count_;
+  unsigned int input_module_total_data_size_;
+  std::vector<PNIO_UINT32> input_module_data_length_; 
+  std::vector<PNIO_IOXS>   input_module_state_;    //PNIO_IOXS volatile* volatile device_input_state_;
+  std::vector<PNIO_ADDR>   input_module_address_;
+             
+  PNIO_UINT32 output_module_count_;
+  unsigned int output_module_total_data_size_;
+  std::vector<PNIO_UINT32> output_module_data_length_;
+  std::vector<PNIO_IOXS>   output_module_state_;   //PNIO_IOXS volatile* volatile device_output_state_;
+  std::vector<PNIO_ADDR>   output_module_address_;
+   
+  static const int WAIT_FOR_CALLBACKS_PERIOD = 100000;
+  static const int MAX_NUM_OF_INIT_ATTEMPTS = 1000;
+  static const int INIT_DATA_VALUE = 0;
+	  
 }; //cp1616_io_controller class
 } //cp1616
 
