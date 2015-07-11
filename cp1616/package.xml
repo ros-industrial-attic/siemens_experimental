@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package>
+  <name>cp1616</name>
+  <version>1.0.0</version>
+  <description>The cp1616 package</description>
+
+  <maintainer email="durovsky987@gmail.com">durovsky</maintainer>
+  
+  <license>Apache2.0</license>
+
+  <!-- Url tags are optional, but mutiple are allowed, one per tag -->
+  <!-- Optional attribute type can be: website, bugtracker, or repository -->
+  <!-- Example: -->
+  <!-- <url type="website">http://wiki.ros.org/cp1616</url> -->
+  
+  <buildtool_depend>catkin</buildtool_depend>
+  
+  <build_depend>roscpp</build_depend>
+  <build_depend>libpniousr</build_depend>
+  <build_depend>libl2interface</build_depend>
+  
+  <run_depend>roscpp</run_depend>
+  <run_depend>libpniousr</run_depend>
+  <run_depend>libl2interface</run_depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>
