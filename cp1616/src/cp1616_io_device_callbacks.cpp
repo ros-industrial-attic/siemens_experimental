@@ -331,7 +331,7 @@ namespace pnio_device_callbacks
      
     // set local provider status preset values for all input/output slots
     // set local consumer status for all output slots
-    for(i = 0; i < DEVICE_DATA_ENTRIES ; i++)
+    for(i = 0; i < CallbackHandler->getNumOfModules(); i++)
     {
       for(j = 0; j < 1 /*g_device_data[i].maxSubslots*/; j++)
       {

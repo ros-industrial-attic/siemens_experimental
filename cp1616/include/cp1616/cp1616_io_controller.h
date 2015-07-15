@@ -27,12 +27,25 @@
 #include "pniousrx.h"
 #include "pnioerrx.h"
 
-#define NUM_OF_INPUT_MODULES    4       //Fixed definitions for development purposes
-#define NUM_OF_OUTPUT_MODULES   4
-
 namespace cp1616
 {
 
+struct InputModuleData
+{
+  std::string module_id;
+  int size;
+  int starting_address;
+  std::string pub_topic;
+};
+
+struct OutputModuleData
+{
+  std::string module_id;
+  int size;
+  int starting_address;
+  std::string sub_topic;
+};
+  
 /**
  * \brief This class defines ROS-Profinet IO Controller implementation for communication processor Siemens CP1616
  */
@@ -45,6 +58,7 @@ public:
    * \brief Public instance accesssor
    */
   static Cp1616IOController* getControllerInstance();
+  static Cp1616IOController* getControllerInstance(ros::NodeHandle *nh);  
 
   /**
    * \brief Destructs an IOController object
@@ -137,12 +151,18 @@ public:
 
 private:
 
-  Cp1616IOController();
+  Cp1616IOController(ros::NodeHandle *nh);
   static Cp1616IOController *controller_instance_;
 
   PNIO_UINT32 cp_handle_;
   PNIO_UINT32 cp_id_;
  
+  unsigned int num_of_input_modules_;
+  unsigned int num_of_output_modules_;
+  
+  std::vector<InputModuleData> input_modules_;
+  std::vector<OutputModuleData> output_modules_;
+  
   int cp_ready_;
   int sem_mod_change_;
   volatile PNIO_MODE_TYPE cp_current_mode_;

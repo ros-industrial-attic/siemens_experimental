@@ -29,16 +29,21 @@ namespace cp1616
 //Define and initialize device_instance_ to zero value;
 Cp1616IODevice *Cp1616IODevice::device_instance_ = 0;
 
-Cp1616IODevice* Cp1616IODevice::getDeviceInstance()
+Cp1616IODevice* Cp1616IODevice::getDeviceInstance(ros::NodeHandle *nh)
 {
   if( !device_instance_ )
   {
-    device_instance_ = new Cp1616IODevice();
+    device_instance_ = new Cp1616IODevice(nh);
   }
   return device_instance_;
 }
 
-Cp1616IODevice::Cp1616IODevice():
+Cp1616IODevice* Cp1616IODevice::getDeviceInstance()
+{
+  return device_instance_;
+}
+
+Cp1616IODevice::Cp1616IODevice(ros::NodeHandle *nh):
     cp_id_(1),
     cp_handle_(0),
     cp_session_key_(0),
@@ -49,41 +54,62 @@ Cp1616IODevice::Cp1616IODevice():
     offline_ind_flag_(0),
     p_device_data_(NULL)
 {
-
-    p_device_data_ = new DeviceData [DEVICE_DATA_ENTRIES * sizeof(DeviceData)];
-
-    //Initialize device_data_ according to STEP7 project setup
-    p_device_data_[0].slot =  1;
-    p_device_data_[0].subslot = 1;
-    p_device_data_[0].modId = 0x19;
-    p_device_data_[0].subslotId = 0x010001;
-    p_device_data_[0].api = 0;
-    p_device_data_[0].maxSubslots = 0;
-    p_device_data_[0].modState = 0;
-    p_device_data_[0].subState = 0;
-    p_device_data_[0].dir = 0;
-
-    p_device_data_[1].slot =  2;
-    p_device_data_[1].subslot = 1;
-    p_device_data_[1].modId = 0x23;
-    p_device_data_[1].subslotId = 0x0001;
-    p_device_data_[1].api = 0;
-    p_device_data_[1].maxSubslots = 0;
-    p_device_data_[1].modState = 0;
-    p_device_data_[1].subState = 0;
-    p_device_data_[1].dir = 0;
-
-    //Allocate memory for input/output module variables
-    cp_number_of_slots_ = NUMOF_SLOTS;
-    cp_max_number_of_subslots_ = NUMOF_SUBSLOTS;
+  //Parse data from yaml config file
+  XmlRpc::XmlRpcValue module_list;
+  XmlRpc::XmlRpcValue::iterator xml_iter;
     
+  if(nh->getParam("modules", module_list))
+  {
+    num_of_modules_ = module_list.size();
+    xml_iter = module_list.begin();
+    
+    DeviceData temp;
+    int temp_int;
+    for(unsigned int i = 0; i < module_list.size(); i++)
+    {
+      temp.slot        = xml_iter->second["slot"];
+      temp.subslot     = xml_iter->second["subslot"];
+      temp.modState    = xml_iter->second["modState"];
+      temp.subState    = xml_iter->second["subState"];
+      temp.dir         = xml_iter->second["dir"];
+    
+      //Typecasting from int to PNIO_UINT 
+      temp_int         = xml_iter->second["modId"];
+      temp.modId       = (PNIO_UINT32)temp_int;
+      
+      temp_int         = xml_iter->second["subslotId"];
+      temp.subslotId   = (PNIO_UINT32)temp_int;
+      
+      temp_int         = xml_iter->second["api"];
+      temp.api         = (PNIO_UINT32)temp_int;
+      
+      temp_int         = xml_iter->second["maxSubslots"];
+      temp.maxSubslots = (PNIO_UINT32)temp_int;
+      
+      modules_.push_back(temp);
+      xml_iter++;
+    }
+  }  
+  else
+  {
+    ROS_WARN_STREAM("Not able to load any module from yaml config file!");
+    num_of_modules_ = 0;
+  }
+    
+    //Assign modules_[0] address to device data pointer
+    p_device_data_ = &modules_[0];
+
+    //Allocate memory for idx_table_
+    idx_table_.resize(num_of_modules_);
+    
+    //Prepare vector for data length, IOCS, IOPS 
     unsigned int i,j,k;
     std::vector<PNIO_IOXS>   temp_ioxs;
     std::vector<PNIO_UINT32> temp_uint32;
     
-    for(i = 0; i < cp_number_of_slots_; i++)
+    for(i = 0; i < num_of_modules_; i++)
     {
-      for(j = 0; j < cp_max_number_of_subslots_; j++)
+      for(j = 0; j < MAX_NUMBER_OF_SUBSLOTS; j++)
         temp_ioxs.push_back(PNIO_S_GOOD);
         temp_uint32.push_back(0);
              
@@ -99,12 +125,13 @@ Cp1616IODevice::Cp1616IODevice():
       temp_uint32.clear();
     }
     
+    //prepare array[slot][subslot][data_index] for input/output data
     std::vector<PNIO_UINT8> temp_data_items;
     std::vector<std::vector<PNIO_UINT8> > temp_submodules; 
     
-    for(i = 0; i < cp_number_of_slots_; i++)
+    for(i = 0; i < num_of_modules_; i++)
     {
-      for(j = 0; j < cp_max_number_of_subslots_; j++)
+      for(j = 0; j < MAX_NUMBER_OF_SUBSLOTS; j++)
       {
         for(k = 0; k < input_data_length_[i][j]; k++)
           temp_data_items.push_back(0);	
@@ -114,12 +141,11 @@ Cp1616IODevice::Cp1616IODevice():
       input_data_.push_back(temp_submodules);
       output_data_.push_back(temp_submodules);
     }
-        
 }
 
 Cp1616IODevice::~Cp1616IODevice()
 {
-  delete p_device_data_;
+  
 }
 
 int Cp1616IODevice::init()
@@ -207,7 +233,7 @@ int Cp1616IODevice::addApi()
   PNIO_UINT32 error_code = PNIO_OK;
 
   //for each slot
-  for(i = j = 0; i < DEVICE_DATA_ENTRIES; i++)
+  for(i = j = 0; i < num_of_modules_; i++)
   {
     //read api from configuration data
     api = p_device_data_[i].api;
@@ -230,7 +256,7 @@ int Cp1616IODevice::addApi()
     //check if the api exists in the slots ahead,
     //if yes, then update highest slot/subslot number accordingly
 
-    for(j = i+1; j <  DEVICE_DATA_ENTRIES; j++)
+    for(j = i+1; j <  num_of_modules_; j++)
     {
       if(api == p_device_data_[j].api)
       {
@@ -263,7 +289,7 @@ int Cp1616IODevice::removeApi()
   PNIO_UINT32 error_code = PNIO_OK;
 
   //for each slot
-  for(i = j = 0; i < DEVICE_DATA_ENTRIES && error_code == PNIO_OK; i++)
+  for(i = j = 0; i < num_of_modules_ && error_code == PNIO_OK; i++)
   {
     //read api from configuration data
     api = p_device_data_[i].api;
@@ -361,7 +387,7 @@ int Cp1616IODevice::addModSubMod()
   if(NUMOF_SLOTS > 1)
   {
 
-    for(i = 1; i < DEVICE_DATA_ENTRIES;)
+    for(i = 1; i < num_of_modules_;)
     {
       addr.u.Geo.Slot    = p_device_data_[i].slot;	     //plug module at correct slot
       addr.u.Geo.Subslot = p_device_data_[i].subslot;    //get the corresponding sub-slot
@@ -402,7 +428,7 @@ int Cp1616IODevice::addModSubMod()
     } //end for
 
     //Add all submodules
-    for(i = 1; i < DEVICE_DATA_ENTRIES; i++)
+    for(i = 1; i < num_of_modules_; i++)
     {
       if(p_device_data_[i].maxSubslots > 0)
       {
@@ -441,7 +467,7 @@ int Cp1616IODevice::addModSubMod()
   }
 
   //if not all the modules/submodules are plugged correctly, print warning
-  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
+  for(i = 0; i < num_of_modules_; i++)
   {
     if(p_device_data_[i].subState == 0)
       {
@@ -459,7 +485,7 @@ int Cp1616IODevice::removeModSubMod()
   PNIO_UINT32 error_code = PNIO_OK;
 
   //Remove modules/submodules in reverse order
-  for(i = DEVICE_DATA_ENTRIES -1; i >= 0 && error_code == PNIO_OK; i--)
+  for(i = num_of_modules_ -1; i >= 0 && error_code == PNIO_OK; i--)
   {
     if(p_device_data_[i].subState == 1)
     {
@@ -605,13 +631,13 @@ int Cp1616IODevice::GetSubmodNum(PNIO_UINT32 mod, PNIO_UINT32 sub)
 {
   int i,j;
 
-  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)      //Look for module index
+  for(i = 0; i < num_of_modules_; i++)      //Look for module index
   {
     if((int)mod == idx_table_[i])
     break;
   }
 
-  if(i == DEVICE_DATA_ENTRIES)                  //no module means also no submodule
+  if(i == num_of_modules_)                  //no module means also no submodule
     return -1;
 
   for(j = 0; j < p_device_data_[i].maxSubslots; j++)
@@ -629,7 +655,7 @@ void Cp1616IODevice::configureDeviceData()
   unsigned int begin_new_slot = 0;
   unsigned int idx = 0;
 
-  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
+  for(i = 0; i < num_of_modules_; i++)
   {
     ROS_INFO("Module: slot %x sub %x mod_id %x sub_id %x",
     p_device_data_[i].slot,
@@ -639,11 +665,13 @@ void Cp1616IODevice::configureDeviceData()
   }
 
   //fill idxTbl with -1
-  memset(idx_table_, -1, DEVICE_DATA_ENTRIES * sizeof(int));
+  for(unsigned int i = 0; i < num_of_modules_; i++)
+    idx_table_[i] = -1;
+    
   idx_table_[idx++] = p_device_data_[0].slot;
 
   //browsing through the device data structure
-  for(i = 0; i < DEVICE_DATA_ENTRIES; i++)
+  for(i = 0; i < num_of_modules_; i++)
   {
     if(p_device_data_[i].slot == p_device_data_[begin_new_slot].slot)
     {
@@ -765,6 +793,11 @@ int Cp1616IODevice::doAfterIndataIndCbf()
      ROS_ERROR("Not able to initiate data read: Error 0x%x", (int)error_code);
      return (int)error_code;
    }
+}
+
+int Cp1616IODevice::getNumOfModules()
+{
+  return num_of_modules_;
 }
 
 void Cp1616IODevice::setArInfoIndFlag(int value)

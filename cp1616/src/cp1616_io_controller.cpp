@@ -29,16 +29,21 @@ namespace cp1616
 //Define and initialize controller instance_ to zero value
 Cp1616IOController *Cp1616IOController::controller_instance_ = 0;
 
-Cp1616IOController* Cp1616IOController::getControllerInstance()
+Cp1616IOController* Cp1616IOController::getControllerInstance(ros::NodeHandle *nh)
 {
   if( !controller_instance_ )
   {
-    controller_instance_ = new Cp1616IOController();
+    controller_instance_ = new Cp1616IOController(nh);
   }
   return controller_instance_;
 }
 
-Cp1616IOController::Cp1616IOController() :
+Cp1616IOController* Cp1616IOController::getControllerInstance()
+{
+  return controller_instance_;
+}
+
+Cp1616IOController::Cp1616IOController(ros::NodeHandle *nh) :
   cp_ready_(0),
   sem_mod_change_(0),
   cp_id_(1),
@@ -50,15 +55,73 @@ Cp1616IOController::Cp1616IOController() :
   input_module_total_data_size_(0),
   output_module_total_data_size_(0)
 {
+  //Parse data from yaml config file
+  XmlRpc::XmlRpcValue input_list;
+  XmlRpc::XmlRpcValue output_list;
+  XmlRpc::XmlRpcValue temp_list;
+  XmlRpc::XmlRpcValue::iterator xml_iter;
+  
+  //Input modules 
+  if(nh->getParam("input", input_list))
+  {
+    num_of_input_modules_ = input_list.size();
+    xml_iter = input_list.begin();
+   
+    InputModuleData temp;
+    for(unsigned int i = 0; i < input_list.size(); i++)
+    {
+      temp.module_id = xml_iter->first;
+      temp.size = xml_iter->second["size"];
+      temp.starting_address = xml_iter->second["starting_address"];
+            
+      std::string temp_pub_topic = xml_iter->second["pub_topic"];
+      temp.pub_topic = temp_pub_topic;      
+      
+      input_modules_.push_back(temp);
+       xml_iter++;
+    }
+  }
+  else
+  {
+    ROS_WARN_STREAM("Not able to load any Input module from yaml config file!");
+    num_of_input_modules_ = 0;
+  }
+  
+   //Output modules 
+  if(nh->getParam("output", output_list))
+  {
+    num_of_output_modules_ = output_list.size();
+    xml_iter = output_list.begin();
+    
+    OutputModuleData temp;
+    for(unsigned int i = 0; i < output_list.size(); i++)
+    {
+      temp.module_id = xml_iter->first;
+      temp.size = xml_iter->second["size"];
+      temp.starting_address = xml_iter->second["starting_address"];
+           
+      std::string temp_sub_topic = xml_iter->second["sub_topic"];
+      temp.sub_topic = temp_sub_topic;  
+      
+      output_modules_.push_back(temp);
+      xml_iter++;
+    }
+  }
+  else
+  {
+    ROS_WARN_STREAM("Not able to load any Output module from yaml config file!");
+    num_of_output_modules_ = 0;
+  }
+  
   //Allocate memory for Input module variables
-  input_module_data_length_.resize(NUM_OF_INPUT_MODULES);
-  input_module_state_.resize(NUM_OF_INPUT_MODULES);
-  input_module_address_.resize(NUM_OF_INPUT_MODULES);
+  input_module_data_length_.resize(num_of_input_modules_);
+  input_module_state_.resize(num_of_input_modules_);
+  input_module_address_.resize(num_of_input_modules_);
 
   //Allocate memory for Output module variables
-  output_module_data_length_.resize(NUM_OF_OUTPUT_MODULES);  
-  output_module_state_.resize(NUM_OF_OUTPUT_MODULES);
-  output_module_address_.resize(NUM_OF_OUTPUT_MODULES);
+  output_module_data_length_.resize(num_of_output_modules_);  
+  output_module_state_.resize(num_of_output_modules_);
+  output_module_address_.resize(num_of_output_modules_);
 }
 
 Cp1616IOController::~Cp1616IOController()
@@ -147,7 +210,7 @@ int Cp1616IOController::addInputModule(unsigned int input_size, unsigned int inp
     ROS_ERROR_STREAM("Not able to add Input module in Operate state!");
     return PNIO_ERR_SEQUENCE;
   }
-  else if(input_module_count_ >= NUM_OF_INPUT_MODULES)
+  else if(input_module_count_ >= num_of_input_modules_)
   {
     ROS_ERROR_STREAM("Not able to add antoher input module. Max count reached!");
     return PNIO_ERR_SEQUENCE;
@@ -176,18 +239,6 @@ int Cp1616IOController::addInputModule(unsigned int input_size, unsigned int inp
 
 int Cp1616IOController::addOutputModule(unsigned int output_size, unsigned int output_start_address)
 {
-  if(cp_current_mode_ == PNIO_MODE_OPERATE)
-  {
-    ROS_ERROR_STREAM("Error: not able to add Output module in Operate state!");
-    return PNIO_ERR_SEQUENCE;
-  }
-  else if(output_module_count_ >= NUM_OF_INPUT_MODULES)
-  {
-    ROS_ERROR_STREAM("Error: Not able to add antoher module. Max count reached!");
-    return PNIO_ERR_SEQUENCE;
-  }
-  else
-  {
     //Set variables required for PNIO_data_write function
     output_module_data_length_[output_module_count_] = output_size;              //number of transferred bytes
     output_module_state_[output_module_count_]  = PNIO_S_BAD;                    //initial Input State
@@ -205,19 +256,24 @@ int Cp1616IOController::addOutputModule(unsigned int output_size, unsigned int o
     output_module_total_data_size_ += output_size;       //save overall Output Size
 
     return PNIO_OK;
-  }
 }
 
 int Cp1616IOController::init()
 {
   PNIO_UINT32 error_code = PNIO_OK;
 
+  //Add input modules as defined in yaml file
+  for(unsigned int i = 0; i < num_of_input_modules_; i++)
+    addInputModule(input_modules_[i].size, input_modules_[i].starting_address);
+  
+  //Add output modules as defined in yaml file
+  for(unsigned int i = 0; i < num_of_output_modules_; i++)
+    addOutputModule(output_modules_[i].size, output_modules_[i].starting_address);
+    
   //Configure Controller Data
   configureControllerData();
 
-  //Open PNIO_Controller
-  
-  //Connect to CP and obtain handle
+  //Open CP and obtain handle
   error_code = PNIO_controller_open(
               cp_id_,
               PNIO_CEP_MODE_CTRL,

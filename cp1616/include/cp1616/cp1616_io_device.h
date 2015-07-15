@@ -45,8 +45,6 @@
 #define DEVICE_ID    0x0003
 #define INSTANCE_ID  0x0001
 
-#define DEVICE_DATA_ENTRIES     2          // The total number of members of DEVICE_DATA structure  
-
 #include <ros/ros.h>
 
 //IO Base headers
@@ -63,8 +61,8 @@ namespace cp1616
 
 struct DeviceData
 {
-  unsigned int slot;
-  unsigned int subslot;
+  int slot;
+  int subslot;
   PNIO_UINT32 modId;
   PNIO_UINT32 subslotId;
   PNIO_UINT32 api;
@@ -85,7 +83,8 @@ public:
    * \brief Public instance accesssor
    */
   static Cp1616IODevice* getDeviceInstance();
-
+  static Cp1616IODevice* getDeviceInstance(ros::NodeHandle *nh);
+  
   /**
    * \brief Destructs an IOController object
    */
@@ -212,6 +211,7 @@ public:
   void setInputDataIops(int slot_number, int subslot_number, PNIO_IOXS status);   
   void setOutputDataIops(int slot_number, int subslot_number, PNIO_IOXS status);    
   
+  int getNumOfModules();
   int getArInfoIndFlag();
   int getPrmEndIndFlag();
   int getIndataIndFlag();
@@ -228,14 +228,15 @@ public:
   
 private:
   
-  Cp1616IODevice();
+  Cp1616IODevice(ros::NodeHandle *nh);
   static Cp1616IODevice *device_instance_;
+  
+  int num_of_modules_;
+  std::vector<DeviceData> modules_;
   
   PNIO_UINT32 cp_handle_;
   PNIO_UINT32 cp_id_;
-  unsigned int cp_number_of_slots_;
-  unsigned int cp_max_number_of_subslots_;
-
+  
   std::vector<std::vector<PNIO_UINT32> > input_data_length_;
   std::vector<std::vector<PNIO_IOXS> >   input_data_iocs_;
   std::vector<std::vector<PNIO_IOXS> >   input_data_iops_;
@@ -251,13 +252,14 @@ private:
   PNIO_UINT16 cp_session_key_;
   PNIO_UINT16 cp_ar_number_;
 
-  int idx_table_[DEVICE_DATA_ENTRIES];
+  std::vector<int> idx_table_;
   
+  static const int MAX_NUMBER_OF_SUBSLOTS = 1;
   static const int WAIT_FOR_CALLBACK_PERIOD = 100000;
   static const int MAX_PRM_END_COUNT = 500;
   static const int MAX_INDATA_IND_COUNT = 500;
   static const int MAX_OFFLINE_IND_COUNT = 100; 
-	 
+  	 
 }; //cp1616_io_device class
 }  //cp1616
 

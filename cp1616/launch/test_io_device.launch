@@ -1,0 +1,5 @@
+<?xml version="1.0" ?>
+<launch>
+  <node name="cp1616_test" pkg="cp1616" type="cp1616_test" output="screen"/>
+  <rosparam command="load" file="$(find cp1616)/config/test_io_device_config.yaml"/>
+</launch>

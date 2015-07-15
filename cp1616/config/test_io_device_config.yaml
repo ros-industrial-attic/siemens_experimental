@@ -1,0 +1,26 @@
+modules:
+  module_1:
+    slot: 1
+    subslot: 1
+    modId: 0x19
+    subslotId: 0x010001
+    api: 0
+    maxSubslots: 0
+    modState: 0
+    substate: 0
+    dir: 0
+  
+  module_2:
+    slot: 2
+    subslot: 1
+    modId: 0x23
+    subslotId: 0x01
+    api: 0
+    maxSubslots: 0
+    modState: 0
+    substate: 0
+    dir: 0  
+  
+  
+  
+  

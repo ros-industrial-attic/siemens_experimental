@@ -34,22 +34,12 @@ int main(int argc, char **argv)
 
 #ifdef IO_CONTROLLER_MODE
 
+  //Create CP object
   cp1616::Cp1616IOController *cp1616_object;
-  cp1616_object = cp1616::Cp1616IOController::getControllerInstance();
+  cp1616_object = cp1616::Cp1616IOController::getControllerInstance(&priv_nh_);
 
-  //Add IO modules
-  cp1616_object->addOutputModule(4,4116);
-  cp1616_object->addOutputModule(4,4120);
-  cp1616_object->addOutputModule(4,4124);
-  cp1616_object->addOutputModule(16,4128);
-
-  cp1616_object->addInputModule(4,4132);
-  cp1616_object->addInputModule(4,4136);
-  cp1616_object->addInputModule(4,4140);
-  cp1616_object->addInputModule(16,4144);
-
-  //Initialize CP
-  cp1616_object->init();
+  //Initialize and start CP
+/*  cp1616_object->init();
 
   if(cp1616_object->getCpReady() != 0)
   {
@@ -109,13 +99,13 @@ int main(int argc, char **argv)
  }
   //Uninitialize CP
   cp1616_object->uinit();
-
+*/
 #endif
 
 #ifdef IO_DEVICE_MODE
 
   cp1616::Cp1616IODevice *cp1616_object;
-  cp1616_object = cp1616::Cp1616IODevice::getDeviceInstance();
+  cp1616_object = cp1616::Cp1616IODevice::getDeviceInstance(&priv_nh_);
 
   int error_code;
 
