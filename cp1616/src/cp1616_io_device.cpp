@@ -52,50 +52,17 @@ Cp1616IODevice::Cp1616IODevice(ros::NodeHandle *nh):
     prm_end_ind_flag_(0),
     indata_ind_flag_(0),
     offline_ind_flag_(0),
-    p_device_data_(NULL)
+    p_device_data_(NULL),
+    num_of_modules_(0)
 {
   //Parse data from yaml config file
-  XmlRpc::XmlRpcValue module_list;
-  XmlRpc::XmlRpcValue::iterator xml_iter;
+  std::string filepath;
+  nh->getParam("filepath", filepath);
+  PNIO_UINT32 error_code = PNIO_OK;
+  error_code = parseConfigFile(filepath);
     
-  if(nh->getParam("modules", module_list))
+  if(error_code == PNIO_OK)  //if parsing successful
   {
-    num_of_modules_ = module_list.size();
-    xml_iter = module_list.begin();
-    
-    DeviceData temp;
-    int temp_int;
-    for(unsigned int i = 0; i < module_list.size(); i++)
-    {
-      temp.slot        = xml_iter->second["slot"];
-      temp.subslot     = xml_iter->second["subslot"];
-      temp.modState    = xml_iter->second["modState"];
-      temp.subState    = xml_iter->second["subState"];
-      temp.dir         = xml_iter->second["dir"];
-    
-      //Typecasting from int to PNIO_UINT 
-      temp_int         = xml_iter->second["modId"];
-      temp.modId       = (PNIO_UINT32)temp_int;
-      
-      temp_int         = xml_iter->second["subslotId"];
-      temp.subslotId   = (PNIO_UINT32)temp_int;
-      
-      temp_int         = xml_iter->second["api"];
-      temp.api         = (PNIO_UINT32)temp_int;
-      
-      temp_int         = xml_iter->second["maxSubslots"];
-      temp.maxSubslots = (PNIO_UINT32)temp_int;
-      
-      modules_.push_back(temp);
-      xml_iter++;
-    }
-  }  
-  else
-  {
-    ROS_WARN_STREAM("Not able to load any module from yaml config file!");
-    num_of_modules_ = 0;
-  }
-    
     //Assign modules_[0] address to device data pointer
     p_device_data_ = &modules_[0];
 
@@ -141,11 +108,22 @@ Cp1616IODevice::Cp1616IODevice(ros::NodeHandle *nh):
       input_data_.push_back(temp_submodules);
       output_data_.push_back(temp_submodules);
     }
+  }
 }
 
 Cp1616IODevice::~Cp1616IODevice()
 {
   
+}
+
+void operator >> (const YAML::Node &node, DeviceModuleData &module)
+{
+  node["id"] >> module.id;
+  node["type"] >> module.type;
+  node["slot"] >> module.slot;
+  node["subslot"] >> module.subslot; 
+  node["modId"] >> module.modId;
+  node["subslotId"] >> module.subslotId;
 }
 
 int Cp1616IODevice::init()
@@ -793,6 +771,42 @@ int Cp1616IODevice::doAfterIndataIndCbf()
      ROS_ERROR("Not able to initiate data read: Error 0x%x", (int)error_code);
      return (int)error_code;
    }
+}
+
+PNIO_UINT32 Cp1616IODevice::parseConfigFile(std::string filepath)
+{
+  std::ifstream fin(filepath.c_str());
+  YAML::Parser parser(fin);
+  YAML::Node doc;
+  PNIO_UINT32 error_code = PNIO_OK;
+  
+  try
+  {
+    parser.GetNextDocument(doc);
+    ROS_INFO_STREAM("Doc size: " << doc.size());  
+    for(unsigned i = 0; i < doc.size(); i++)
+    {
+      DeviceModuleData temp_module;
+      doc[i] >> temp_module; 
+      num_of_modules_++;
+      
+      temp_module.api = 0;
+      temp_module.maxSubslots = 0;
+      temp_module.modState = 0;
+      temp_module.subState = 0;
+      temp_module.dir = 0;
+         
+      modules_.push_back(temp_module);
+    }
+    ROS_INFO_STREAM("Configuration: Number of modules: " << num_of_modules_ );
+	     
+  }
+  catch(YAML::ParserException &e)
+  {
+    ROS_ERROR("Not able to read yaml config file");
+    error_code = PNIO_ERR_NO_CONFIG;
+  }
+  return(error_code);
 }
 
 int Cp1616IODevice::getNumOfModules()

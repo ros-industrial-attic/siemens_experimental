@@ -46,6 +46,9 @@
 #define INSTANCE_ID  0x0001
 
 #include <ros/ros.h>
+#include <yaml-cpp/yaml.h>
+#include <iostream>
+#include <fstream>
 
 //IO Base headers
 #include "pniobase.h"
@@ -56,11 +59,13 @@ namespace cp1616
 {
 
 /**
- * \brief Structure to keep STEP7 project data required for plugging modules and submodules
- * */
+ * \brief Struct to keep STEP7 module information parsed from yaml. config file
+ */
 
-struct DeviceData
+struct DeviceModuleData
 {
+  std::string id;
+  std::string type;
   int slot;
   int subslot;
   PNIO_UINT32 modId;
@@ -71,6 +76,11 @@ struct DeviceData
   int subState;
   int dir;
 };
+
+/**
+ * \brief Overloading extraction operator for yaml parsing
+ */
+void operator >> (const YAML::Node &node, DeviceModuleData &module);
 
 /**
  * \brief This class defines ROS-Profinet IO Device implementation for communication processor Siemens CP1616
@@ -181,11 +191,11 @@ public:
    * \return error_code (see pnioerrx.h for detailed description)
    */
   int doAfterIndataIndCbf();
-
+  
   /**
    * \brief pointer to device_data table which holds STEP7 configuration params
    */
-  DeviceData *p_device_data_;
+  DeviceModuleData *p_device_data_;
 
  /**
   * \brief Table of input controller data - IO Device output data
@@ -231,8 +241,10 @@ private:
   Cp1616IODevice(ros::NodeHandle *nh);
   static Cp1616IODevice *device_instance_;
   
+  PNIO_UINT32 parseConfigFile(std::string filepath);
+  
   int num_of_modules_;
-  std::vector<DeviceData> modules_;
+  std::vector<DeviceModuleData> modules_;
   
   PNIO_UINT32 cp_handle_;
   PNIO_UINT32 cp_id_;

@@ -22,6 +22,9 @@
 #define CP1616_IO_CONTROLLER_H
 
 #include <ros/ros.h>
+#include <yaml-cpp/yaml.h>
+#include <iostream>
+#include <fstream>
 
 //IO base headers
 #include "pniousrx.h"
@@ -30,22 +33,24 @@
 namespace cp1616
 {
 
-struct InputModuleData
+/**
+ * \brief Struct to keep STEP7 module information parsed from yaml. config file
+ */
+  
+struct ControllerModuleData
 {
-  std::string module_id;
+  std::string id;
+  std::string type;
   int size;
   int starting_address;
-  std::string pub_topic;
+  std::string topic;
 };
 
-struct OutputModuleData
-{
-  std::string module_id;
-  int size;
-  int starting_address;
-  std::string sub_topic;
-};
-  
+/**
+ * \brief Overloading extraction operator for yaml parsing
+ */
+void operator >> (const YAML::Node &node, ControllerModuleData &module);
+
 /**
  * \brief This class defines ROS-Profinet IO Controller implementation for communication processor Siemens CP1616
  */
@@ -154,15 +159,17 @@ private:
   Cp1616IOController(ros::NodeHandle *nh);
   static Cp1616IOController *controller_instance_;
 
+  PNIO_UINT32 parseConfigFile(std::string filepath);
+  
   PNIO_UINT32 cp_handle_;
   PNIO_UINT32 cp_id_;
  
   unsigned int num_of_input_modules_;
   unsigned int num_of_output_modules_;
   
-  std::vector<InputModuleData> input_modules_;
-  std::vector<OutputModuleData> output_modules_;
-  
+  std::vector<ControllerModuleData> input_modules_;
+  std::vector<ControllerModuleData> output_modules_;
+   
   int cp_ready_;
   int sem_mod_change_;
   volatile PNIO_MODE_TYPE cp_current_mode_;
@@ -183,8 +190,9 @@ private:
   static const int WAIT_FOR_CALLBACKS_PERIOD = 100000;
   static const int MAX_NUM_OF_INIT_ATTEMPTS = 1000;
   static const int INIT_DATA_VALUE = 0;
-	  
+  	  
 }; //cp1616_io_controller class
+
 } //cp1616
 
 #endif //CP1616_IO_CONTROLLER_H

@@ -14,7 +14,8 @@ ADD_LIBRARY(Cp1616RosLib
         ${PROJECT_SOURCE_DIR}/src/cp1616_io_device.cpp
         ${PROJECT_SOURCE_DIR}/src/cp1616_io_device_callbacks.cpp
         )
-	  
+  
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES Cp1616RosLib
@@ -23,6 +24,7 @@ catkin_package(
 )
 
 add_executable(cp1616_test ${PROJECT_SOURCE_DIR}/src/cp1616_main.cpp)
+target_link_libraries (Cp1616RosLib yaml-cpp)	
 target_link_libraries(cp1616_test ${catkin_LIBRARIES} 
                                   Cp1616RosLib
                                   libpniousr.a
