@@ -93,7 +93,7 @@ public:
    * \brief Public instance accesssor
    */
   static Cp1616IODevice* getDeviceInstance();
-  static Cp1616IODevice* getDeviceInstance(ros::NodeHandle *nh);
+  static Cp1616IODevice* getDeviceInstance(std::string filepath);
   
   /**
    * \brief Destructs an IOController object
@@ -238,7 +238,7 @@ public:
   
 private:
   
-  Cp1616IODevice(ros::NodeHandle *nh);
+  Cp1616IODevice(std::string filepath);
   static Cp1616IODevice *device_instance_;
   
   PNIO_UINT32 parseConfigFile(std::string filepath);

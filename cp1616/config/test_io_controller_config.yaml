@@ -1,43 +1,47 @@
-#Data comming from PROFINET network
-input:
-  module_1:
-    size: 4
-    starting_address: 4132
-    pub_topic: profinet_input_1
-        
-  module_2:
-    size: 4
-    starting_address: 4136
-    pub_topic: profinet_input_2
-    
-  module_3:
-    size: 4
-    starting_address: 4140
-    pub_topic: profinet_input_3
-    
-  module_4:
-    size: 16
-    starting_address: 4144
-    pub_topic: profinet_input_4
+- id: input_module_1
+  type: input
+  size: 4
+  starting_address: 4132
+  topic: profinet_input_1
 
-#Data being transmitted to PROFINET network    
-output:
-  module_1:
-    size: 4
-    starting_address: 4116
-    sub_topic: profinet_output_1
-    
-  module_2:
-    size: 4
-    starting_address: 4120
-    sub_topic: profinet_output_2
-    
-  module_3:
-    size: 4
-    starting_address: 4124
-    sub_topic: profinet_output_3
-    
-  module_4:
-    size: 16
-    starting_address: 4128
-    sub_topic: profinet_output_4
+- id: input_module_2
+  type: input
+  size: 4
+  starting_address: 4136
+  topic: profinet_input_2
+
+- id: input_module_3
+  type: input
+  size: 4
+  starting_address: 4140
+  topic: profinet_input_3
+
+- id: input_module_4
+  type: input
+  size: 16
+  starting_address: 4144
+  topic: profinet_input_4
+  
+- id: output_module_1
+  type: output
+  size: 4
+  starting_address: 4116
+  topic: profinet_output_1
+  
+- id: output_module_2
+  type: output
+  size: 4
+  starting_address: 4120
+  topic: profinet_output_2
+  
+- id: output_module_3
+  type: output
+  size: 4
+  starting_address: 4124
+  topic: profinet_output_3
+  
+- id: output_module_4
+  type: output
+  size: 16
+  starting_address: 4128
+  topic: profinet_output_4 

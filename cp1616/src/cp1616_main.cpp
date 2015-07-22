@@ -23,23 +23,25 @@
 #include <cp1616/cp1616_io_device.h>
 #include <cp1616/cp1616_io_device_callbacks.h>
 
-#define IO_CONTROLLER_MODE
-//#define IO_DEVICE_MODE
+//#define IO_CONTROLLER_MODE
+#define IO_DEVICE_MODE
 
 int main(int argc, char **argv)
 {
   ros::init(argc,argv, "cp1616");
   ros::NodeHandle nh;
-  ros::NodeHandle priv_nh_;
+  
+  std::string filepath;
+  nh.getParam("filepath", filepath);
 
 #ifdef IO_CONTROLLER_MODE
 
   //Create CP object
   cp1616::Cp1616IOController *cp1616_object;
-  cp1616_object = cp1616::Cp1616IOController::getControllerInstance(&priv_nh_);
+  cp1616_object = cp1616::Cp1616IOController::getControllerInstance(filepath);
 
   //Initialize and start CP
-/*  cp1616_object->init();
+  cp1616_object->init();
 
   if(cp1616_object->getCpReady() != 0)
   {
@@ -99,13 +101,13 @@ int main(int argc, char **argv)
  }
   //Uninitialize CP
   cp1616_object->uinit();
-*/
+
 #endif
 
 #ifdef IO_DEVICE_MODE
 
   cp1616::Cp1616IODevice *cp1616_object;
-  cp1616_object = cp1616::Cp1616IODevice::getDeviceInstance(&priv_nh_);
+  cp1616_object = cp1616::Cp1616IODevice::getDeviceInstance(filepath);
 
   int error_code;
 

@@ -60,10 +60,10 @@ class Cp1616IOController
 public:
 
   /**
-   * \brief Public instance accesssor
+   * \brief Public instance accesssors
    */
   static Cp1616IOController* getControllerInstance();
-  static Cp1616IOController* getControllerInstance(ros::NodeHandle *nh);  
+  static Cp1616IOController* getControllerInstance(std::string filepath);  
 
   /**
    * \brief Destructs an IOController object
@@ -156,7 +156,7 @@ public:
 
 private:
 
-  Cp1616IOController(ros::NodeHandle *nh);
+  Cp1616IOController(std::string filepath);
   static Cp1616IOController *controller_instance_;
 
   PNIO_UINT32 parseConfigFile(std::string filepath);
@@ -190,6 +190,9 @@ private:
   static const int WAIT_FOR_CALLBACKS_PERIOD = 100000;
   static const int MAX_NUM_OF_INIT_ATTEMPTS = 1000;
   static const int INIT_DATA_VALUE = 0;
+    
+  static const std::string INPUT;
+  static const std::string OUTPUT;
   	  
 }; //cp1616_io_controller class
 
