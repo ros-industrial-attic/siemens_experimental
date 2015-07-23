@@ -29,8 +29,8 @@ namespace cp1616
 //Define and initialize controller instance_ to zero value
 Cp1616IOController *Cp1616IOController::controller_instance_ = 0;
 
-const std::string Cp1616IOController::INPUT = "input";
-const std::string Cp1616IOController::OUTPUT = "output";
+const std::string INPUT = "input";
+const std::string OUTPUT = "output";
 
 Cp1616IOController* Cp1616IOController::getControllerInstance(std::string filepath)
 {

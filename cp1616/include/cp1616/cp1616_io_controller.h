@@ -190,9 +190,6 @@ private:
   static const int WAIT_FOR_CALLBACKS_PERIOD = 100000;
   static const int MAX_NUM_OF_INIT_ATTEMPTS = 1000;
   static const int INIT_DATA_VALUE = 0;
-    
-  static const std::string INPUT;
-  static const std::string OUTPUT;
   	  
 }; //cp1616_io_controller class
 
