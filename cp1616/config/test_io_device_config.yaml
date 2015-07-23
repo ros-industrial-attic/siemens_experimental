@@ -1,0 +1,19 @@
+- id: module_1
+  type: init
+  slot: 1
+  subslot: 1
+  modId: 0x19
+  subslotId: 0x00010001
+  
+  
+- id: module_2
+  type: input
+  slot: 2
+  subslot: 1
+  modId: 0x23
+  subslotId: 0x01
+  
+  
+  
+  
+  

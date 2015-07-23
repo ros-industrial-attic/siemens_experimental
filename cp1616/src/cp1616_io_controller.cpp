@@ -29,16 +29,24 @@ namespace cp1616
 //Define and initialize controller instance_ to zero value
 Cp1616IOController *Cp1616IOController::controller_instance_ = 0;
 
-Cp1616IOController* Cp1616IOController::getControllerInstance()
+const std::string INPUT = "input";
+const std::string OUTPUT = "output";
+
+Cp1616IOController* Cp1616IOController::getControllerInstance(std::string filepath)
 {
   if( !controller_instance_ )
   {
-    controller_instance_ = new Cp1616IOController();
+    controller_instance_ = new Cp1616IOController(filepath);
   }
   return controller_instance_;
 }
 
-Cp1616IOController::Cp1616IOController() :
+Cp1616IOController* Cp1616IOController::getControllerInstance()
+{
+  return controller_instance_;
+}
+
+Cp1616IOController::Cp1616IOController(std::string filepath) :
   cp_ready_(0),
   sem_mod_change_(0),
   cp_id_(1),
@@ -48,22 +56,41 @@ Cp1616IOController::Cp1616IOController() :
   input_module_count_(0),
   output_module_count_(0),
   input_module_total_data_size_(0),
-  output_module_total_data_size_(0)
+  output_module_total_data_size_(0),
+  num_of_input_modules_(0),
+  num_of_output_modules_(0)
 {
-  //Allocate memory for Input module variables
-  input_module_data_length_.resize(NUM_OF_INPUT_MODULES);
-  input_module_state_.resize(NUM_OF_INPUT_MODULES);
-  input_module_address_.resize(NUM_OF_INPUT_MODULES);
+  //Parse data from yaml config file
+  ROS_INFO_STREAM("Reading configuration from: " << filepath);
+  PNIO_UINT32 error_code = PNIO_OK;
+  error_code = parseConfigFile(filepath);
+  
+  if(error_code == PNIO_OK)  //if parsing successful
+  {
+    //Allocate memory for Input module variables
+    input_module_data_length_.resize(num_of_input_modules_);
+    input_module_state_.resize(num_of_input_modules_);
+    input_module_address_.resize(num_of_input_modules_);
 
-  //Allocate memory for Output module variables
-  output_module_data_length_.resize(NUM_OF_OUTPUT_MODULES);  
-  output_module_state_.resize(NUM_OF_OUTPUT_MODULES);
-  output_module_address_.resize(NUM_OF_OUTPUT_MODULES);
+    //Allocate memory for Output module variables
+    output_module_data_length_.resize(num_of_output_modules_);  
+    output_module_state_.resize(num_of_output_modules_);
+    output_module_address_.resize(num_of_output_modules_);
+  }
 }
 
 Cp1616IOController::~Cp1616IOController()
 {
   
+}
+
+void operator >> (const YAML::Node &node, ControllerModuleData &module)
+{
+  node["id"] >> module.id;
+  node["type"] >> module.type; 
+  node["size"] >> module.size;
+  node["starting_address"] >> module.starting_address;
+  node["topic"] >> module.topic;
 }
 
 void Cp1616IOController::configureControllerData()
@@ -147,7 +174,7 @@ int Cp1616IOController::addInputModule(unsigned int input_size, unsigned int inp
     ROS_ERROR_STREAM("Not able to add Input module in Operate state!");
     return PNIO_ERR_SEQUENCE;
   }
-  else if(input_module_count_ >= NUM_OF_INPUT_MODULES)
+  else if(input_module_count_ >= num_of_input_modules_)
   {
     ROS_ERROR_STREAM("Not able to add antoher input module. Max count reached!");
     return PNIO_ERR_SEQUENCE;
@@ -176,18 +203,6 @@ int Cp1616IOController::addInputModule(unsigned int input_size, unsigned int inp
 
 int Cp1616IOController::addOutputModule(unsigned int output_size, unsigned int output_start_address)
 {
-  if(cp_current_mode_ == PNIO_MODE_OPERATE)
-  {
-    ROS_ERROR_STREAM("Error: not able to add Output module in Operate state!");
-    return PNIO_ERR_SEQUENCE;
-  }
-  else if(output_module_count_ >= NUM_OF_INPUT_MODULES)
-  {
-    ROS_ERROR_STREAM("Error: Not able to add antoher module. Max count reached!");
-    return PNIO_ERR_SEQUENCE;
-  }
-  else
-  {
     //Set variables required for PNIO_data_write function
     output_module_data_length_[output_module_count_] = output_size;              //number of transferred bytes
     output_module_state_[output_module_count_]  = PNIO_S_BAD;                    //initial Input State
@@ -205,19 +220,24 @@ int Cp1616IOController::addOutputModule(unsigned int output_size, unsigned int o
     output_module_total_data_size_ += output_size;       //save overall Output Size
 
     return PNIO_OK;
-  }
 }
 
 int Cp1616IOController::init()
 {
   PNIO_UINT32 error_code = PNIO_OK;
 
+  //Add input modules as defined in yaml file
+  for(unsigned int i = 0; i < num_of_input_modules_; i++)
+    addInputModule(input_modules_[i].size, input_modules_[i].starting_address);
+  
+  //Add output modules as defined in yaml file
+  for(unsigned int i = 0; i < num_of_output_modules_; i++)
+    addOutputModule(output_modules_[i].size, output_modules_[i].starting_address);
+    
   //Configure Controller Data
   configureControllerData();
 
-  //Open PNIO_Controller
-  
-  //Connect to CP and obtain handle
+  //Open CP and obtain handle
   error_code = PNIO_controller_open(
               cp_id_,
               PNIO_CEP_MODE_CTRL,
@@ -447,6 +467,59 @@ void Cp1616IOController::setSemModChange(int mod_change)
 {
   sem_mod_change_ = mod_change;
 }
+
+PNIO_UINT32 Cp1616IOController::parseConfigFile(std::string filepath)
+{
+  PNIO_UINT32 error_code = PNIO_OK;
+  std::ifstream fin(filepath.c_str());
+  
+  if(fin.is_open())  
+  {
+    YAML::Parser parser(fin);
+    YAML::Node doc;
+    
+  
+    try
+    {
+      parser.GetNextDocument(doc);
+      
+      for(unsigned i = 0; i < doc.size(); i++)
+      {
+        ControllerModuleData temp_module;
+        doc[i] >> temp_module; 
+        if(temp_module.type == INPUT)
+        {
+          num_of_input_modules_++;
+          input_modules_.push_back(temp_module);
+        }
+      
+        if(temp_module.type == OUTPUT)
+        {
+          num_of_output_modules_++;
+          output_modules_.push_back(temp_module);
+        }
+      }
+      if((num_of_input_modules_ == 0) && (num_of_output_modules_ == 0))
+        ROS_WARN("No module found! Check configuration!");
+      else
+        ROS_INFO_STREAM("CP1616 Configuration: Number of input modules: " << num_of_input_modules_ 
+		        << " Number of output_modules: " << num_of_output_modules_);
+    }
+    catch(YAML::ParserException &e)
+    {
+      ROS_ERROR("Error reading yaml config file");
+      error_code = PNIO_ERR_NO_CONFIG;
+    }
+  }
+  else
+  {
+    ROS_ERROR("Error openning yaml config file");
+    error_code = PNIO_ERR_NO_CONFIG;
+  }
+
+  return(error_code);  
+}
+    
 
 } //cp1616
 
