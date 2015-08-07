@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-<launch>
-  <node name="cp1616_test" pkg="cp1616" type="cp1616_test" output="screen"/>
-  <rosparam>
-    filepath: "/home/durovsky/catkin_ws/src/cp1616/cp1616/config/test_io_device_config.yaml"
-  </rosparam>  
-</launch>
