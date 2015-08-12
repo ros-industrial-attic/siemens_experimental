@@ -827,7 +827,7 @@ int Cp1616IODevice::parseConfigFile(std::string filepath)
   return (int)error_code;
 }
 
-int Cp1616IODevice::sendDiagnosticAlarm(PNIO_UINT32 channel_error_type, PNIO_UINT16 diag_tag)
+int Cp1616IODevice::sendDiagnosticAlarm(PNIO_UINT16 slot_num)
 {
   PNIO_UINT32 error_code = PNIO_OK;
   PNIO_UINT16 ui_diag_alarm_property;   //channel property to be passed to the PNIO_diag_channel_add function
@@ -836,7 +836,7 @@ int Cp1616IODevice::sendDiagnosticAlarm(PNIO_UINT32 channel_error_type, PNIO_UIN
   PNIO_DEV_ADDR addr;                   //Address info of the module
   
   addr.AddrType      = PNIO_ADDR_GEO;   // must be PNIO_ADDR_GEO 
-  addr.u.Geo.Slot    = 2;               // slot index
+  addr.u.Geo.Slot    = slot_num;        // slot index
   addr.u.Geo.Subslot = 1;               // subslot index always 1 
   
   ROS_WARN("Sending diagnostic alarm to IO Controller");
@@ -851,14 +851,14 @@ int Cp1616IODevice::sendDiagnosticAlarm(PNIO_UINT32 channel_error_type, PNIO_UIN
   //Add extended diagnostic channel
   error_code = PNIO_diag_ext_channel_add(
     cp_handle_,                            // Device handle 
-    modules_[addr.u.Geo.Slot].api,         // Api number 
+    modules_[slot_num].api,                // Api number 
     &addr,                                 // Address  
-    addr.u.Geo.Subslot,                    // subslot number  
+    slot_num,                              // subslot number  
     ui_diag_alarm_property,                // channel properties 
-    channel_error_type,                    // errortype - function param 
+    CH_ERR_GROUND_FAULT,                   // error type 
     CH_ERR_GROUND_FAULT,                   // ext channel error type
     0x00000001,                            // ext channel add value
-    diag_tag);                             // diag tag/ alarm handle 
+    slot_num);                             // diag tag/ alarm handle 
   
   if(error_code != PNIO_OK) 
   {
@@ -877,16 +877,16 @@ int Cp1616IODevice::sendDiagnosticAlarm(PNIO_UINT32 channel_error_type, PNIO_UIN
   //Prepare alarm data
   diag_data.chanProp           = ui_diag_alarm_property;
   diag_data.chanNum            = 0x8000;
-  diag_data.chanErrType        = (unsigned short)diag_tag;
+  diag_data.chanErrType        = (unsigned short)slot_num;
   diag_data.extChannelErrType  = 0x8000;
   diag_data.extChannelAddValue = 0x00000001;
   
   //Copy the alarm properties to reset the alarm 
-  alarms_[diag_tag].chanProp	        = diag_data.chanProp;
-  alarms_[diag_tag].chanNum	        = diag_data.chanNum ;
-  alarms_[diag_tag].chanErrType        = diag_data.chanErrType;
-  alarms_[diag_tag].extChannelAddValue = diag_data.extChannelAddValue;
-  alarms_[diag_tag].extChannelAddValue = diag_data.extChannelErrType;
+  alarms_[slot_num].chanProp	        = diag_data.chanProp;
+  alarms_[slot_num].chanNum	        = diag_data.chanNum ;
+  alarms_[slot_num].chanErrType        = diag_data.chanErrType;
+  alarms_[slot_num].extChannelAddValue = diag_data.extChannelAddValue;
+  alarms_[slot_num].extChannelAddValue = diag_data.extChannelErrType;
   
   //Send diag_data to reset the alarm 
   error_code = PNIO_diag_alarm_send(
@@ -913,36 +913,36 @@ int Cp1616IODevice::sendDiagnosticAlarm(PNIO_UINT32 channel_error_type, PNIO_UIN
   }
 }
 
-int Cp1616IODevice::resetDiagnosticAlarm(PNIO_UINT16 diag_tag)
+int Cp1616IODevice::resetDiagnosticAlarm(PNIO_UINT16 slot_num)
 {
   PNIO_UINT32 error_code = PNIO_OK;
     
   PNIO_DEV_ADDR addr;                   // Address info of the module 
   addr.AddrType      = PNIO_ADDR_GEO;   // must be PNIO_ADDR_GEO 
-  addr.u.Geo.Slot    = 2;               // slot index 
+  addr.u.Geo.Slot    = slot_num;        // slot index 
   addr.u.Geo.Subslot = 1;               // subslot index always 1  
 
-  if(!diag_tag) 
+  if(!slot_num) 
     ROS_INFO("Resetting all diagnostic and/or maintenance alarm(s)...");   
   else 
     ROS_INFO("Resetting the diagnostic alarm...");
 
   //Storing diagnosis data in a sub-slot and remove diag channel or extdiag channel 
-  if(!diag_tag)
+  if(!slot_num)
   {
     error_code = PNIO_diag_channel_remove(
     cp_handle_,                       // Device handle 
-    modules_[addr.u.Geo.Slot].api,    // Api number 
+    modules_[slot_num].api,    // Api number 
     &addr,                            // Address 
-    diag_tag);                        // alarm slot 
+    slot_num);                        // alarm slot 
   }
   else
   {
     error_code = PNIO_diag_ext_channel_remove(
      cp_handle_,                      // Device handle 
-     modules_[addr.u.Geo.Slot].api,   // Api number 
+     modules_[slot_num].api,   // Api number 
      &addr,                           // Address 
-     diag_tag);                       // diag tag/ alarm handle 
+     slot_num);                       // diag tag/ alarm handle 
   }
 
   if(error_code != PNIO_OK) 
@@ -958,11 +958,11 @@ int Cp1616IODevice::resetDiagnosticAlarm(PNIO_UINT16 diag_tag)
       break;
   }
   
-  if(!diag_tag) 
+  if(!slot_num) 
   {
     error_code = PNIO_diag_alarm_send(
       cp_handle_,                        // Device Handle 
-      modules_[addr.u.Geo.Slot].api,     // Api number 
+      modules_[slot_num].api,     // Api number 
       cp_ar_number_,                     // received in PNIO_cbf_ar_info_ind 
       cp_session_key_,                   // received in PNIO_cbf_ar_info_ind 
       PNIO_STATE_ALARM_DISAPPEARS,
@@ -970,20 +970,18 @@ int Cp1616IODevice::resetDiagnosticAlarm(PNIO_UINT16 diag_tag)
       NULL,                              // Alarm Data 
       0,                                 // size of the structure sent 
       0x8001,                            // means that alarms_ contains diagnosis information 
-      USER_HANDLE);                      // user handle, to identify user in multi-user scenario 
-  
-    //reset_diag_data(0);
+      USER_HANDLE);                      // user handle, to identify user in multi-user scenario      
   }  
   else
   {
     error_code = PNIO_diag_alarm_send(
       cp_handle_,                        // Device Handle 
-      modules_[diag_tag].api,            // Api number 
+      modules_[slot_num].api,            // Api number 
       cp_ar_number_,                     // received in PNIO_cbf_ar_info_ind 
       cp_session_key_,                   // received in PNIO_cbf_ar_info_ind 
       PNIO_STATE_ALARM_DISAPPEARS,
       &addr,
-      (PNIO_UINT8 *)& alarms_[diag_tag], // Alarm Data 
+      (PNIO_UINT8 *)& alarms_[slot_num], // Alarm Data 
       0,                                 // size of the structure sent 
       0x8001,                            // means that alarms_ contains diagnosis information 
       USER_HANDLE);                      // user handle, to identify user in multi-user scenario 
@@ -1006,6 +1004,34 @@ int Cp1616IODevice::resetDiagnosticAlarm(PNIO_UINT16 diag_tag)
    }
   
   return (int)error_code;
+}
+
+int Cp1616IODevice::sendProcessAlarm(PNIO_UINT16 slot_num)  
+{
+    PNIO_UINT32 error_code = PNIO_OK;
+    char alarm_data[50]; 
+        
+    PNIO_DEV_ADDR   addr; 
+    
+    addr.AddrType       = PNIO_ADDR_GEO;
+    addr.u.Geo.Slot     = slot_num;
+    addr.u.Geo.Subslot  = 1; 
+
+    error_code = PNIO_process_alarm_send(
+        cp_handle_,                     // Device handle 
+        modules_[slot_num].api,         // Api number 
+        cp_ar_number_,                  // received in PNIO_cbf_ar_info_ind 
+        cp_session_key_,                // received in PNIO_cbf_ar_info_ind 
+        &addr,                          // location (slot, subslot) 
+        (PNIO_UINT8*)alarm_data,        // alarm data 
+        sizeof (alarm_data),            // alarm data length 
+        0x004d,                         // 0...0x7fff: user struct. is manufac. specific 
+        USER_HANDLE);                   // user handle, to identify user in a multi-user scenario 
+
+    if(error_code != PNIO_OK) 
+        ROS_ERROR("Not able to send process alarm: Error 0x%x", error_code);
+    
+    return (int)error_code;
 }
 
 void Cp1616IODevice::setArInfoIndFlag(int value)

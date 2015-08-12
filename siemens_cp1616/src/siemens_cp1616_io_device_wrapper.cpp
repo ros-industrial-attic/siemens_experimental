@@ -21,6 +21,10 @@
 #include <siemens_cp1616/siemens_cp1616_io_device.h>
 #include <siemens_cp1616/siemens_cp1616_io_device_callbacks.h>
 
+#include <siemens_cp1616/set_alarm.h>
+#include <siemens_cp1616/reset_alarm.h>
+
+#include <std_srvs/Empty.h>
 #include <std_msgs/UInt8MultiArray.h>
 #include <std_msgs/MultiArrayDimension.h>
 
@@ -28,6 +32,12 @@ static const double TOPIC_UPDATE_PERIOD = 0.01;
 
 void subCallback(const std_msgs::UInt8MultiArray::ConstPtr &msg);
 void timerCallback(const ros::TimerEvent &event);
+
+bool setAlarmCallback(siemens_cp1616::set_alarm::Request &request,
+                      siemens_cp1616::set_alarm::Response &response);
+
+bool resetAlarmCallback(siemens_cp1616::reset_alarm::Request &request,
+                        siemens_cp1616::reset_alarm::Response &response);
 
 std::vector<ros::Publisher>  cp_publishers;
 std::vector<ros::Subscriber> cp_subscribers;
@@ -53,6 +63,10 @@ int main(int argc, char *argv[])
     //Create timer object to update input/output data in defined intervals
     ros::Timer time = nh.createTimer(ros::Duration(TOPIC_UPDATE_PERIOD), &timerCallback);
     
+    //Create service servers for setAlarm and resetAlarm
+    ros::ServiceServer set_alarm_service   = nh.advertiseService("set_alarm", &setAlarmCallback);
+    ros::ServiceServer reset_alarm_service = nh.advertiseService("reset_alarm", &resetAlarmCallback);
+   
     //Resize containers for publishers and subscribers
     cp_publishers.resize(cp->modules_.size());
     cp_subscribers.resize(cp->modules_.size());
@@ -161,4 +175,44 @@ void timerCallback(const ros::TimerEvent &event)
       cp_publishers[i].publish(msg);
     }
   } 
+}
+
+bool setAlarmCallback(siemens_cp1616::set_alarm::Request &request,
+                      siemens_cp1616::set_alarm::Response &response)
+{
+  //Create callback_handler object to access cp1616_io_device class methods
+  siemens_cp1616::Cp1616IODevice *callback_handler = siemens_cp1616::Cp1616IODevice::getDeviceInstance();
+    
+  PNIO_UINT32 error_code = PNIO_OK;
+  error_code = callback_handler->sendDiagnosticAlarm(request.slot_num);
+  
+  if(error_code != PNIO_OK)
+  {
+    response.feedback = false;
+    return false;
+  }
+  else 
+  {
+    response.feedback = true;
+    return true; 
+  }
+}
+
+bool resetAlarmCallback(siemens_cp1616::reset_alarm::Request &request,
+                        siemens_cp1616::reset_alarm::Response &response)
+{
+  //Create callback_handler object to access cp1616_io_device class methods
+  siemens_cp1616::Cp1616IODevice *callback_handler = siemens_cp1616::Cp1616IODevice::getDeviceInstance();
+  
+  PNIO_UINT32 error_code = PNIO_OK;
+  error_code = callback_handler->resetDiagnosticAlarm(request.slot_num);
+  
+  if(error_code != PNIO_OK)
+  {
+    response.feedback = false;
+    return false;
+  }
+  else 
+    response.feedback = true;
+    return true;  
 }

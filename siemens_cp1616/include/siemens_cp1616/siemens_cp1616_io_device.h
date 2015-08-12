@@ -150,22 +150,31 @@ public:
   /**
    * \brief Sends diagnostic alarm message to the IO Controller
    *
-   * \param channel_error_type Type of error - alarm type
-   * \param alarm_slot diagnostic tag/alarm handle
+   * \param slot_num index of alarm slot
    * 
    * \return error_code (see pnioerrx.h for detailed description)
    */
-  int sendDiagnosticAlarm(PNIO_UINT32 channel_error_type, PNIO_UINT16 alarm_slot);
+  int sendDiagnosticAlarm(PNIO_UINT16 slot_num);
   
   /**
-   * \brief Reset diagnostic alarm 
+   * \brief Resets diagnostic alarm 
    *
-   * \param alarm_slot diagnostic tag/alarm handle
+   * \param slot_num index of alarm slot
    * 
    * \return error_code (see pnioerrx.h for detailed description)
    */
-  int resetDiagnosticAlarm(PNIO_UINT16 alarm_slot);
+  int resetDiagnosticAlarm(PNIO_UINT16 slot_num);
     
+  /**
+   * \brief Sends process alarm 
+   *
+   * \param slot_num index of alarm slot
+   * 
+   * \return error_code (see pnioerrx.h for detailed description)
+   */
+  int sendProcessAlarm(PNIO_UINT16 slot_num);
+  
+  
   /**
    * \brief Container which holds STEP7 configuration params parsed from yaml file
    */
