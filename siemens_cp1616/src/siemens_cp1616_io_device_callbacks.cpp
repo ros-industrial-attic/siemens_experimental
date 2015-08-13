@@ -59,19 +59,6 @@ namespace pnio_device_callbacks
       //Copy the stack to the application buffer
       memcpy (&callback_handler->output_data_.at(slot_num).at(0), p_buffer, buffer_length); 
       callback_handler->output_data_iocs_[slot_num] = PNIO_S_GOOD;                    // assume everything is ok      
-      
-      /* Print OutData to terminal (debugging purposes)
-      std::cout << "OutData: [slot " << slot_num << "]: ";
-      for(i = 0; i < buffer_length; i++)
-      {
-        if(i % 16 == 0 && i!=0)
-        std::cout << std::endl;
-
-        std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << (int)p_buffer[i] << " ";
-      }
-
-      std::cout <<std::dec << std::endl;
-      */
     }
     else
     {
@@ -113,18 +100,6 @@ namespace pnio_device_callbacks
       //copy the application data to the stack
       memcpy(p_buffer, &callback_handler->input_data_.at(slot_num).at(0), buffer_length); 
       callback_handler->input_data_iops_.at(slot_num) = PNIO_S_GOOD;        //assume everything is ok
-                  
-      /* Print InData to terminal (debugging purposes)
-      std::cout << "InData:  [slot " << slot_num << "]: ";
-      for(i = 0; i < buffer_length; i++)
-      {
-        if(i%16 == 0 && i!=0)
-        std::cout << std::endl;
-
-        std::cout << "0x"<< std::hex << std::setw(2) << std::setfill('0') << (int)p_buffer[i] << " ";
-      }
-      std::cout << std::dec << std::endl;
-      */
     }
     else
     {

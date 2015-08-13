@@ -384,19 +384,7 @@ int Cp1616IOController::updateCyclicInputData()
                     (PNIO_IOXS*)&(input_data_state_[i]));   // remote status
 
     if(error_code != PNIO_OK)
-      ROS_DEBUG("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x", (int)error_code);
-    
-    /* Print input_data to terminal (debugging purposes)  
-    std::cout << "Input  m." << i << std::dec
-               << " [I: " << input_data_address_[i].u.Addr
-               << " - "  << input_data_address_[i].u.Addr + input_data_length_[i]-1
-               << "]: ";
-
-    for(int i = 0; i < input_data_length_[i]; i++)
-        std::cout <<  std::setfill(' ') << std::setw(2) << std::hex << (int)input_data_[i][i] << " ";
-
-    std::cout << std::endl;
-    */
+      ROS_DEBUG("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x", (int)error_code);      
   }
 
   return (int)error_code;
@@ -418,19 +406,7 @@ int Cp1616IOController::updateCyclicOutputData()
                     (PNIO_IOXS*)&(output_data_state_[i]));  // remote status
 
     if(error_code != PNIO_OK)
-        ROS_DEBUG("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x", (int)error_code);
-    
-    /* Print output_data_ to terminal (debugging purposes)
-    std::cout << "Output m." << i << std::dec
-              << " [Q: " << output_data_address_[i].u.Addr
-              << " - "  << output_data_address_[i].u.Addr + output_data_length_[i]-1
-              << "]: ";
-
-    for(int i = 0; i < output_data_length_[i]; i++)
-        std::cout <<  std::setfill(' ') << std::setw(2) << std::hex << (int)output_data_[i][i] << " ";
-
-    std::cout << std::endl;
-    */
+        ROS_DEBUG("PNIO_read_data (PNIO_CBE_DEV_ACT_CONF,..) returned 0x%x", (int)error_code);     
   }
 
   return (int)error_code;
