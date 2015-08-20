@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<launch>
+  <node 
+    name="siemens_cp1616_io_controller_wrapper"
+    pkg="siemens_cp1616" 
+    type="siemens_cp1616_io_controller_wrapper" 
+    output="screen"/>    
+   <param name="filepath" value="$(find siemens_cp1616)/config/test_io_controller_config.yaml"/> 
+</launch>

@@ -1,5 +1,5 @@
 /*********************************************************************************************//**
-* @file cp1616_io_controller_callbacks.cpp
+* @file siemens_cp1616_io_controller_callbacks.cpp
 *
 * Callbacks required by IO Base library
 *
@@ -18,101 +18,101 @@
 *  limitations under the License.
 
 * *********************************************************************************************/
-#ifndef CP1616_IO_CONTROLLER_CALLBACKS_CPP
-#define CP1616_IO_CONTROLLER_CALLBACKS_CPP
+#ifndef SIEMENS_CP1616_IO_CONTROLLER_CALLBACKS_CPP
+#define SIEMENS_CP1616_IO_CONTROLLER_CALLBACKS_CPP
 
-#include <cp1616/cp1616_io_controller.h>
+#include <siemens_cp1616/siemens_cp1616_io_controller.h>
 
-namespace cp1616
+namespace siemens_cp1616
 {
 namespace pnio_controller_callbacks
 {
   void modeChangeIndication(PNIO_CBE_PRM *p_cbf_prm)
   {
-    //Create CallbackHandler object to access cp1616_io_controller variables
-    Cp1616IOController *CallbackHandler = Cp1616IOController::getControllerInstance();
+    //Create callback_handler object to access cp1616_io_controller variables
+    Cp1616IOController *callback_handler = Cp1616IOController::getControllerInstance();
 
     if(p_cbf_prm->CbeType == PNIO_CBE_MODE_IND) /* Check callback type */
     {
       switch (p_cbf_prm->ModeInd.Mode)
       {
 	case PNIO_MODE_OFFLINE:
-	  ROS_INFO_STREAM("IO_controller mode change request-> OFFLINE: ");
-	  CallbackHandler->setCpCurrentModeFlag(PNIO_MODE_OFFLINE);
+	  ROS_INFO("IO_controller mode change request-> OFFLINE: ");
+	  callback_handler->setCpCurrentModeFlag(PNIO_MODE_OFFLINE);
 	  break;
 	case PNIO_MODE_CLEAR:
-	  ROS_INFO_STREAM("IO_controller mode change request-> CLEAR: ");
-	  CallbackHandler->setCpCurrentModeFlag(PNIO_MODE_CLEAR);
+	  ROS_INFO("IO_controller mode change request-> CLEAR: ");
+	  callback_handler->setCpCurrentModeFlag(PNIO_MODE_CLEAR);
 	  break;
 	case PNIO_MODE_OPERATE:
-	  ROS_INFO_STREAM("IO_controller mode change request-> OPERATE: ");
-	  CallbackHandler->setCpCurrentModeFlag(PNIO_MODE_OPERATE);
+	  ROS_INFO("IO_controller mode change request-> OPERATE: ");
+	  callback_handler->setCpCurrentModeFlag(PNIO_MODE_OPERATE);
 	  break;
 	default:
-	  ROS_INFO_STREAM("Not able to change IO_controller mode: Wrong mode selected!");
+	  ROS_INFO("Not able to change IO_controller mode: Wrong mode selected!");
 	  break;
       };
 
       //send notification
-      CallbackHandler->setSemModChange(1);
+      callback_handler->setSemModChange(1);
     }
   }
 
   void alarmIndication(PNIO_CBE_PRM *p_cbf_prm)
   {
-    //Create CallbackHandler object to access cp1616_io_controller variables
-    Cp1616IOController *CallbackHandler = Cp1616IOController::getControllerInstance();
+    //Create callback_handler object to access cp1616_io_controller variables
+    Cp1616IOController *callback_handler = Cp1616IOController::getControllerInstance();
 
     if(p_cbf_prm->CbeType==PNIO_CBE_ALARM_IND) /* Check callback type */
     {
       switch (p_cbf_prm->AlarmInd.pAlarmData->AlarmType)
       {
 	case PNIO_ALARM_DIAGNOSTIC:
-	  ROS_WARN_STREAM("PNIO_ALARM_DIAGNOSTIC");
+	  ROS_WARN("PNIO_ALARM_DIAGNOSTIC");
 	  break;
 	case PNIO_ALARM_PROCESS:
-	  ROS_WARN_STREAM("PNIO_ALARM_DIAGNOSTIC");
+	  ROS_WARN("PNIO_ALARM_DIAGNOSTIC");
 	  break;
 	case PNIO_ALARM_PULL:
-	  ROS_WARN_STREAM("PNIO_ALARM_PULL");
+	  ROS_WARN("PNIO_ALARM_PULL");
 	  break;
 	case PNIO_ALARM_PLUG:
-	  ROS_WARN_STREAM("PNIO_ALARM_PLUG");
+	  ROS_WARN("PNIO_ALARM_PLUG");
 	  break;
 	case PNIO_ALARM_STATUS:
-	  ROS_WARN_STREAM("PNIO_ALARM_STATUS");
+	  ROS_WARN("PNIO_ALARM_STATUS");
 	  break;
 	case PNIO_ALARM_UPDATE:
-	  ROS_WARN_STREAM("PNIO_ALARM_UPDATE");
+	  ROS_WARN("PNIO_ALARM_UPDATE");
 	  break;
 	case PNIO_ALARM_REDUNDANCY:
-	  ROS_WARN_STREAM("PNIO_ALARM_REDUNDANCY");
+	  ROS_WARN("PNIO_ALARM_REDUNDANCY");
 	  break;
 	case PNIO_ALARM_CONTROLLED_BY_SUPERVISOR:
-	  ROS_WARN_STREAM("PNIO_ALARM_CONTROLLED_BY_SUPERVISOR");
+	  ROS_WARN("PNIO_ALARM_CONTROLLED_BY_SUPERVISOR");
 	  break;
 	case PNIO_ALARM_RELEASED_BY_SUPERVISOR:
-	  ROS_WARN_STREAM("PNIO_ALARM_RELEASED_BY_SUPERVISOR");
+	  ROS_WARN("PNIO_ALARM_RELEASED_BY_SUPERVISOR");
 	  break;
 	case PNIO_ALARM_PLUG_WRONG:
-	  ROS_WARN_STREAM("PNIO_ALARM_PLUG_WRONG");
+	  ROS_WARN("PNIO_ALARM_PLUG_WRONG");
 	  break;
 	case PNIO_ALARM_RETURN_OF_SUBMODULE:
-	  ROS_WARN_STREAM("PNIO_ALARM_RETURN_OF_SUBMODULE");
+	  ROS_WARN("PNIO_ALARM_RETURN_OF_SUBMODULE");
 	  break;
 	case PNIO_ALARM_DEV_FAILURE:
 	  #if DEBUG
-	    ROS_WARN_STREAM("PNIO_ALARM_DEV_FAILURE");
+	    ROS_WARN("PNIO_ALARM_DEV_FAILURE");
 	  #endif
 	  break;
 	case PNIO_ALARM_DEV_RETURN:
 	  #ifdef DEBUG
-	    ROS_WARN_STREAM("PNIO_ALARM_DEV_RETURN");
+	    ROS_WARN("PNIO_ALARM_DEV_RETURN");
 	  #endif
-	  CallbackHandler->setCpReady(1);	//Set cp_ready_ flag to notify application that CP is ready for communication
+	  callback_handler->setCpReady(1);	//Set cp_ready_ flag to notify application that CP is ready for communication
 	  break;
 	default:
-	  ROS_WARN_STREAM("callback_for_alarm_indication called with wrong type");
+	  ROS_WARN("callback_for_alarm_indication called with wrong type");
 	  break;
       };
     }
@@ -137,14 +137,14 @@ namespace pnio_controller_callbacks
 
   void dsReadConf(PNIO_CBE_PRM *p_cbf_prm)
   {
-    ROS_WARN_STREAM("CallbackForDsReadConf should not occur within this implementation");
+    ROS_WARN("CallbackForDsReadConf should not occur within this implementation");
   }
 
   void dsWriteConf(PNIO_CBE_PRM *p_cbf_prm)
   {
-    ROS_WARN_STREAM("CallbackForDsWriteConf should not occur within this implementation");
+    ROS_WARN("CallbackForDsWriteConf should not occur within this implementation");
   }
-} //cp1616_io_controller_callbacks
-} //cp1616
+} //siemens_cp1616_io_controller_callbacks
+} //siemens_cp1616
 
-#endif //CP1616_IO_CONTROLLER_CALLBACKS_CPP
+#endif //SIEMENS_CP1616_IO_CONTROLLER_CALLBACKS_CPP
