@@ -4,9 +4,9 @@
   <version>1.0.0</version>
   <description>
     
-    The siemens_cp1616 is a package that lets the ROS user to communicate with Profinet IO devices 
+    The siemens_cp1616 is a package that allows the ROS user to communicate with Profinet IO devices 
     using PCI communication card CP1616. The package itself wraps the functions of the IO Base 
-    library provided by Siemens and adopt them to ROS message/service functionality.  
+    library provided by Siemens and adopts them to ROS message/service functionality.  
     
   </description>
 
