@@ -60,38 +60,32 @@ Cp1616IOController::Cp1616IOController(std::string filepath) :
   num_of_input_modules_(0),
   num_of_output_modules_(0)
 {
-  //Parse data from yaml config file
-  PNIO_UINT32 error_code = PNIO_OK;
-  error_code = parseConfigFile(filepath);
-  
-  if(error_code == PNIO_OK)  //if parsing successful
+  try
   {
-    //Allocate memory for Input module variables
-    input_data_length_.resize(num_of_input_modules_);
-    input_data_state_.resize(num_of_input_modules_);
-    input_data_address_.resize(num_of_input_modules_);
-
-    //Allocate memory for Output module variables
-    output_data_length_.resize(num_of_output_modules_);  
-    output_data_state_.resize(num_of_output_modules_);
-    output_data_address_.resize(num_of_output_modules_);
+    //Parse data from yaml config file
+    parseConfigFile(filepath);
   }
-  else
-    exit(error_code); //If yaml config not loaded successfully exit the application
+  catch(int e)
+  {
+    ROS_ERROR("Not able to parse the yaml file");
+    throw;
+  }   
+  
+  //Allocate memory for Input module variables
+  input_data_length_.resize(num_of_input_modules_);
+  input_data_state_.resize(num_of_input_modules_);
+  input_data_address_.resize(num_of_input_modules_);
+
+  //Allocate memory for Output module variables
+  output_data_length_.resize(num_of_output_modules_);  
+  output_data_state_.resize(num_of_output_modules_);
+  output_data_address_.resize(num_of_output_modules_);
+  
 }
 
 Cp1616IOController::~Cp1616IOController()
 {
   
-}
-
-void operator >> (const YAML::Node &node, ControllerModuleData &module)
-{
-  node["label"] >> module.label;
-  node["type"] >> module.type; 
-  node["size"] >> module.size;
-  node["starting_address"] >> module.starting_address;
-  node["topic"] >> module.topic;
 }
 
 void Cp1616IOController::configureControllerData()
@@ -440,58 +434,60 @@ void Cp1616IOController::setSemModChange(int mod_change)
   sem_mod_change_ = mod_change;
 }
 
-PNIO_UINT32 Cp1616IOController::parseConfigFile(std::string filepath)
+int Cp1616IOController::parseConfigFile(std::string filepath)
 {
-  PNIO_UINT32 error_code = PNIO_OK;
-  std::ifstream fin(filepath.c_str());
-  
-  if(fin.is_open())  
-  {
-    YAML::Parser parser(fin);
-    YAML::Node doc;
+  PNIO_UINT32 error_code = PNIO_OK;  
    
-    try
-    {
-      parser.GetNextDocument(doc);
+  try
+  {
+    YAML::Node config = YAML::LoadFile(filepath);
+    ControllerModuleData temp_module;
+    
+    for(std::size_t i = 0; i < config.size(); i++)
+    {  
+      temp_module.label            = config[i]["label"].as<std::string>();
+      temp_module.type             = config[i]["type"].as<std::string>();
+      temp_module.size             = config[i]["size"].as<int>();
+      temp_module.starting_address = config[i]["starting_address"].as<int>();
+      temp_module.topic            = config[i]["topic"].as<std::string>();  
+  
+      ROS_DEBUG_STREAM("Label[" << i << "]: " << config[i]["label"].as<std::string>());
+      ROS_DEBUG_STREAM("Type["  << i << "]: " << config[i]["type"].as<std::string>());
+      ROS_DEBUG_STREAM("Size["  << i << "]: " << config[i]["size"].as<int>());
+      ROS_DEBUG_STREAM("Add["   << i << "]: " << config[i]["starting_address"].as<int>());
+      ROS_DEBUG_STREAM("Topic[" << i << "]: " << config[i]["topic"].as<std::string>());
       
-      for(unsigned i = 0; i < doc.size(); i++)
+      if(temp_module.type == INPUT)
       {
-        ControllerModuleData temp_module;
-        doc[i] >> temp_module; 
-        if(temp_module.type == INPUT)
-        {
-          num_of_input_modules_++;
-          input_modules_.push_back(temp_module);
-        }
-      
-        if(temp_module.type == OUTPUT)
-        {
-          num_of_output_modules_++;
-          output_modules_.push_back(temp_module);
-        }
+        num_of_input_modules_++;
+        input_modules_.push_back(temp_module);
       }
-      if((!num_of_input_modules_ ) && (!num_of_output_modules_ ))
-        ROS_WARN("No module found! Check configuration!");
-      else
+  
+      if(temp_module.type == OUTPUT)\
       {
-        ROS_INFO_STREAM("CP1616: Number of input modules: " << num_of_input_modules_);
-        ROS_INFO_STREAM("CP1616: Number of output modules: " << num_of_output_modules_);
+        num_of_output_modules_++;
+        output_modules_.push_back(temp_module);
       }
     }
-    catch(YAML::ParserException &e)
+    if((!num_of_input_modules_ ) && (!num_of_output_modules_ ))
     {
-      ROS_ERROR("Error reading yaml config file");
+      ROS_WARN("No module found! Check configuration!");
       error_code = PNIO_ERR_NO_CONFIG;
     }
+    else
+    {
+      ROS_INFO_STREAM("CP1616: Number of input modules: " << num_of_input_modules_);
+      ROS_INFO_STREAM("CP1616: Number of output modules: " << num_of_output_modules_);
+    }
   }
-  else
+  catch(YAML::ParserException &e)
   {
-    ROS_ERROR("Error openning yaml config file");
+    ROS_ERROR("Error reading yaml config file");
     error_code = PNIO_ERR_NO_CONFIG;
-  }
-
-  return(error_code);  
-}    
+  }   
+  
+  return(error_code);
+}
 
 } //siemens_cp1616
 

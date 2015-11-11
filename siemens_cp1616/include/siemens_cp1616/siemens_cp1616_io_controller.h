@@ -45,11 +45,6 @@ struct ControllerModuleData
 };
 
 /**
- * \brief Overloading extraction operator for yaml parsing
- */
-void operator >> (const YAML::Node &node, ControllerModuleData &module);
-
-/**
  * \brief This class defines ROS-Profinet IO Controller implementation for communication processor Siemens CP1616
  */
 class Cp1616IOController
@@ -164,7 +159,7 @@ private:
   Cp1616IOController(std::string filepath);
   static Cp1616IOController *controller_instance_;
 
-  PNIO_UINT32 parseConfigFile(std::string filepath);
+  int parseConfigFile(std::string filepath);
   
   PNIO_UINT32 cp_handle_;
   PNIO_UINT32 cp_id_;
