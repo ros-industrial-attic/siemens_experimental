@@ -67,10 +67,9 @@ env:
 
 # Install system dependencies, namely a very barebones ROS setup.
 before_install:
-  - mkdir -p ~/host_linx
+  - wget http://www.smartroboticsys.eu/wp-content/uploads/2015/12/host_linx.tar.gz
+  - tar -xvzf host_linx.tar.gz 
   - cd ~/host_linx
-  - git clone https://github.com/durovsky/siemens_drivers.git
-  - cd ~/host_linx/siemens_drivers
   - make
   - sudo make install
   - sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main\" > /etc/apt/sources.list.d/ros-latest.list"
