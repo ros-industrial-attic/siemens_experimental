@@ -67,6 +67,7 @@ env:
 
 # Install system dependencies, namely a very barebones ROS setup.
 before_install:
+  - cd ~
   - wget http://www.smartroboticsys.eu/wp-content/uploads/2015/12/host_linx.tar.gz
   - tar -xvzf host_linx.tar.gz 
   - cd host_linx
