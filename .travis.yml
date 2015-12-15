@@ -69,7 +69,7 @@ env:
 before_install:
   - wget http://www.smartroboticsys.eu/wp-content/uploads/2015/12/host_linx.tar.gz
   - tar -xvzf host_linx.tar.gz 
-  - cd ~/host_linx
+  - cd host_linx
   - make
   - sudo make install
   - sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main\" > /etc/apt/sources.list.d/ros-latest.list"
