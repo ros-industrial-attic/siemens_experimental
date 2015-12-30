@@ -428,7 +428,7 @@ namespace pnio_device_callbacks
     PNIO_UINT32 status,
     PNIO_ERR_STAT *p_pnio_state)
   {
-    ROS_INFO("IO Controller confirmed alarm: UserHndl: 0x%x", user_handle, status);
+    ROS_INFO("IO Controller confirmed alarm: UserHndl: 0x%x", status);
   }
 
   void apduStatusIndication(

@@ -53,45 +53,37 @@ Cp1616IODevice::Cp1616IODevice(std::string filepath):
     indata_ind_flag_(0),
     offline_ind_flag_(0)    
 {
-  //Parse data from yaml config file
-  PNIO_UINT32 error_code = PNIO_OK;
-  error_code = parseConfigFile(filepath);
-    
-  if(error_code == PNIO_OK)  //if parsing successful
-  {        
-   //Resize vectors according to yaml config 
-   idx_table_.resize(modules_.size());
-   alarms_.resize(MAX_ALARM);
-   
-   //Resize data containers (+1 due to DAP module)
-   input_data_.resize(NUMOF_BYTES_PER_SLOT, std::vector<PNIO_UINT8>(modules_.size() + 1));
-   input_data_length_.resize(modules_.size() + 1);
-   input_data_iocs_.resize(modules_.size() + 1);
-   input_data_iops_.resize(modules_.size() + 1);
-   
-   output_data_.resize(NUMOF_BYTES_PER_SLOT, std::vector<PNIO_UINT8>(modules_.size() + 1));
-   output_data_length_.resize(modules_.size() + 1);
-   output_data_iocs_.resize(modules_.size() + 1);
-   output_data_iops_.resize(modules_.size() + 1);   
+  try
+  {
+    //Parse data from yaml config file
+    parseConfigFile(filepath);
   }
-  else
-    exit(error_code); //If yaml config not loaded successfully exit the application
+  catch(int e)
+  {
+    ROS_ERROR("Not able to parse the yaml file");
+    throw;
+  }
+  
+  //Resize vectors according to yaml config 
+  idx_table_.resize(modules_.size());
+  alarms_.resize(MAX_ALARM);
+   
+  //Resize data containers (+1 due to DAP module)
+  input_data_.resize(NUMOF_BYTES_PER_SLOT, std::vector<PNIO_UINT8>(modules_.size() + 1));
+  input_data_length_.resize(modules_.size() + 1);
+  input_data_iocs_.resize(modules_.size() + 1);
+  input_data_iops_.resize(modules_.size() + 1);
+   
+  output_data_.resize(NUMOF_BYTES_PER_SLOT, std::vector<PNIO_UINT8>(modules_.size() + 1));
+  output_data_length_.resize(modules_.size() + 1);
+  output_data_iocs_.resize(modules_.size() + 1);
+  output_data_iops_.resize(modules_.size() + 1);   
+    
 }
 
 Cp1616IODevice::~Cp1616IODevice()
 {
 
-}
-
-void operator >> (const YAML::Node &node, DeviceModuleData &module)
-{
-  node["label"] >> module.label;
-  node["type"] >> module.type;
-  node["size"] >> module.size;
-  node["slot"] >> module.slot;
-  node["modId"] >> module.modId;
-  node["subslotId"] >> module.subslotId;
-  node["topic"] >> module.topic;
 }
 
 int Cp1616IODevice::init()
@@ -779,50 +771,61 @@ int Cp1616IODevice::doAfterIndataIndCbf()
 
 int Cp1616IODevice::parseConfigFile(std::string filepath)
 {
-  PNIO_UINT32 error_code = PNIO_OK;
-  std::ifstream fin(filepath.c_str());
-  
-  if(fin.is_open())
-  {
-    YAML::Parser parser(fin);
-    YAML::Node doc;
+  PNIO_UINT32 error_code = PNIO_OK;  
    
-    try
-    {
-      parser.GetNextDocument(doc);
-      for(unsigned i = 0; i < doc.size(); i++)
-      {
-        DeviceModuleData temp_module;
-        doc[i] >> temp_module; 
-     
-        //Fixed params
-        temp_module.subslot = 1;
-        temp_module.api = 0;
-        temp_module.maxSubslots = 0;
-        temp_module.modState = 0;
-        temp_module.subState = 0;
-        temp_module.dir = 0;
- 
-        if(temp_module.size > NUMOF_BYTES_PER_SLOT)
-          ROS_ERROR("CP1616 Configuration: Max data length: %d exceeded", NUMOF_BYTES_PER_SLOT);
-        else
-          modules_.push_back(temp_module);	
-      }
+  try
+  {
+    YAML::Node config = YAML::LoadFile(filepath);
+    DeviceModuleData temp_module;
+    
+    for(std::size_t i = 0; i < config.size(); i++)
+    {  
+      temp_module.label            = config[i]["label"].as<std::string>();
+      temp_module.type             = config[i]["type"].as<std::string>();
+      temp_module.size             = config[i]["size"].as<int>();
+      temp_module.slot             = config[i]["slot"].as<int>();
+      temp_module.modId            = config[i]["modId"].as<int>();
+      temp_module.subslotId        = config[i]["subslotId"].as<int>();
+      temp_module.topic            = config[i]["topic"].as<std::string>();  
+  
+      ROS_DEBUG("=====================================");
+      ROS_DEBUG_STREAM("Label["   << i << "]: " << config[i]["label"].as<std::string>());
+      ROS_DEBUG_STREAM("Type["    << i << "]: " << config[i]["type"].as<std::string>());
+      ROS_DEBUG_STREAM("Size["    << i << "]: " << config[i]["size"].as<int>());
+      ROS_DEBUG_STREAM("Slot["    << i << "]: " << config[i]["slot"].as<int>());
+      ROS_DEBUG_STREAM("Subslot[" << i << "]: " << config[i]["subslotId"].as<int>());
+      ROS_DEBUG_STREAM("ModId["   << i << "]: " << config[i]["modId"].as<int>());
+      ROS_DEBUG_STREAM("Topic["   << i << "]: " << config[i]["topic"].as<std::string>());
       
-      if(!modules_.size())
-        ROS_ERROR("CP1616 Configuration: No module found! Check configuration!");
+      //Fixed parameters
+      temp_module.subslot = 1;
+      temp_module.api = 0;
+      temp_module.maxSubslots = 0;
+      temp_module.modState = 0;
+      temp_module.subState = 0;
+      temp_module.dir = 0;
+      
+      if(temp_module.size > NUMOF_BYTES_PER_SLOT)
+      {
+        ROS_ERROR("CP1616 Configuration: Max data length: %d exceeded", NUMOF_BYTES_PER_SLOT);
+        error_code = PNIO_ERR_ABORT;
+      }
       else
-        ROS_INFO_STREAM("CP1616 Configuration: Number of modules: " << modules_.size() );
+        modules_.push_back(temp_module);	
     }
-    catch(YAML::ParserException &e)
-    {
-      ROS_ERROR("Error reading yaml config file");
+      
+    if(!modules_.size())
+    {  
+      ROS_ERROR("CP1616 Configuration: No module found! Check configuration!");
       error_code = PNIO_ERR_NO_CONFIG;
     }
+    else
+      ROS_INFO_STREAM("CP1616 Configuration: Number of modules: " << modules_.size() );
   }
-  else
+  catch(YAML::ParserException &e)
   {
-    ROS_ERROR("Error openning yaml config file");
+    ROS_ERROR("Error reading yaml config file");
+    error_code = PNIO_ERR_NO_CONFIG;
   }
   return (int)error_code;
 }

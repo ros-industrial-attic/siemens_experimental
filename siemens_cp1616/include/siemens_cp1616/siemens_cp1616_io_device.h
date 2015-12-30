@@ -93,11 +93,6 @@ struct DiagAlarmDataExt
 };
 
 /**
- * \brief Overloading extraction operator for yaml parsing
- */
-void operator >> (const YAML::Node &node, DeviceModuleData &module);
-
-/**
  * \brief This class defines ROS-Profinet IO Device implementation for communication processor Siemens CP1616
  */
 
