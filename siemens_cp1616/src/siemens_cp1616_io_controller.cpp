@@ -104,7 +104,7 @@ void Cp1616IOController::configureControllerData()
     
     for(i = 0; i < input_module_count_; i++)  //allocate memory for 2D array of input data (variable row size)
     {
-      for(j = 0; j < input_data_length_[input_module_count_]; j++)
+      for(j = 0; j < input_data_length_[i]; j++)
       temp.push_back(0);//fill temp row with zeros according to input_data_length_ values
 
       input_data_.push_back(temp);  //add row to input_data_
@@ -139,8 +139,8 @@ void Cp1616IOController::configureControllerData()
    
     for(i = 0; i < output_module_count_; i++)  //allocate memory for 2D array of input data (variable row size)
     {
-      for(j = 0; j < output_data_length_[output_module_count_]; j++)
-      temp.push_back(0);    //fill temp row with zeros according to input_data_length_ values
+      for(j = 0; j < output_data_length_[i]; j++)
+      temp.push_back(0);    //fill temp row with zeros according to output_data_length_ values
 
       output_data_.push_back(temp);  //add row to input_data_
       temp.clear();                  //clear temp row
